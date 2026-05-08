@@ -37,6 +37,7 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 - Não valida tokens de acesso reais da Graph API
 - Não persiste dados em banco — estado apenas em memória + `localStorage`
 - Não é adequado para uso em produção
+- **v1:** não suporta mensagens de mídia (imagem, áudio, vídeo, documento, sticker), localização, interativas ou reações — apenas texto. Esses tipos serão adicionados em versões futuras.
 
 ---
 
@@ -55,6 +56,11 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 | `IGSID` | Instagram-Scoped User ID — identificador numérico do usuário no Instagram |
 | `app_secret` | Chave usada para assinar os payloads com HMAC-SHA256 |
 | `verify_token` | Token configurado para o fluxo de verificação de webhook (`hub.verify_token`) |
+| `phone_number_id` | ID do número de telefone da conta WPP Business — presente em `metadata` |
+| `waba_id` | WhatsApp Business Account ID — aparece como `entry[].id` no payload |
+| `ig_account_id` | ID da conta Instagram Business — aparece como `entry[].id` e `recipient.id` |
+| `watermark` | Unix timestamp usado nos read/delivery receipts do Instagram como marca d'água |
+| `context` | Campo opcional no payload WPP indicando a qual mensagem anterior o usuário está respondendo |
 
 ---
 
@@ -280,7 +286,7 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 }
 ```
 
-**Status update (simulado após envio):**
+**Status update (simulado após envio) — `field` é sempre `"messages"`, mesmo para status:**
 ```json
 {
   "object": "whatsapp_business_account",
@@ -297,10 +303,19 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
           "id": "wamid.HBgLmock<16-hex-chars>",
           "recipient_id": "5586999990000",
           "status": "delivered",
-          "timestamp": "1746700001"
+          "timestamp": "1746700001",
+          "conversation": {
+            "id": "MOCK_CONV_ID",
+            "origin": { "type": "service" }
+          },
+          "pricing": {
+            "billable": false,
+            "pricing_model": "CBP",
+            "category": "service"
+          }
         }]
       },
-      "field": "message_status"
+      "field": "messages"
     }]
   }]
 }
@@ -341,7 +356,27 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 }
 ```
 
-**Read receipt (simulado após envio):**
+**Delivery receipt (simulado ~1s após envio):**
+```json
+{
+  "object": "instagram",
+  "entry": [{
+    "id": "MOCK_IG_ACCOUNT_ID",
+    "time": 1746700001,
+    "messaging": [{
+      "sender":    { "id": "123456789" },
+      "recipient": { "id": "MOCK_IG_ACCOUNT_ID" },
+      "timestamp": 1746700001,
+      "delivery": {
+        "mids": ["mid.$mock<16-hex-chars>"],
+        "watermark": 1746700000
+      }
+    }]
+  }]
+}
+```
+
+**Read receipt (simulado ~3s após envio):**
 ```json
 {
   "object": "instagram",
@@ -383,6 +418,7 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 - [ ] `0.2` Definir persistência de config: apenas memória ou arquivo `config.json` local
 - [ ] `0.3` Definir registro Docker: Docker Hub ou GitHub Container Registry (ghcr.io)
 - [ ] `0.4` Definir licença: MIT ou Apache 2.0
+- [ ] `0.5` Definir escopo de tipos de mensagem para v1 (confirmado: somente texto) e roadmap de v2 (mídia, localização, interativas, reações)
 
 ---
 
@@ -400,6 +436,8 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 
 - [ ] `2.1` Modelar estado dos dois canais em memória
   - `ChannelConfig`: `webhook_url`, `user_name`, `identifier`, `platform`, `configured: bool`
+    - WPP: inclui `waba_id` e `phone_number_id` (gerados como mock fixo, mas configuráveis)
+    - Instagram: inclui `ig_account_id` e `ig_page_id` (gerados como mock fixo, mas configuráveis)
   - `ChannelState`: `ws_connected: bool`, `history: List[Message]`
 - [ ] `2.2` `GET /health`
 - [ ] `2.3` `GET /info` — URLs de callback, verificação e WebSocket por canal
@@ -420,16 +458,21 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
   - WhatsApp: `wamid.HBgL<uuid4().hex[:16]>`
   - Instagram: `mid.$<uuid4().hex[:16]>`
 - [ ] `3.2` Builder de payload WhatsApp — texto (todos os campos conforme spec)
+  - Campo `context` opcional: `{"from": "<wa_id>", "id": "<wamid>"}` para replies
 - [ ] `3.3` Builder de payload WhatsApp — status update (`delivered`, `read`)
+  - `field` deve ser `"messages"` (não `"message_status"`) — conforme spec oficial
+  - Incluir campos `conversation` e `pricing` no objeto de status
 - [ ] `3.4` Builder de payload Instagram — texto (estrutura `messaging` conforme spec)
-- [ ] `3.5` Builder de payload Instagram — read receipt (`messaging.read.watermark`)
-- [ ] `3.6` Assinatura `X-Hub-Signature-256`: `sha256=HMAC-SHA256(APP_SECRET, raw_body)`
-- [ ] `3.7` Envio assíncrono via HTTP POST com header de assinatura e timeout de 10s
-- [ ] `3.8` Tratamento de erros: `ConnectionError`, `TimeoutError`, resposta não-2xx
-- [ ] `3.9` Simulação de status updates com delay configurável:
+- [ ] `3.5` Builder de payload Instagram — delivery receipt (`messaging.delivery.mids` + `watermark`)
+- [ ] `3.6` Builder de payload Instagram — read receipt (`messaging.read.watermark`)
+- [ ] `3.7` Assinatura `X-Hub-Signature-256`: `sha256=HMAC-SHA256(APP_SECRET, raw_body)`
+- [ ] `3.8` Envio assíncrono via HTTP POST com header de assinatura e timeout de 10s
+- [ ] `3.9` Tratamento de erros: `ConnectionError`, `TimeoutError`, resposta não-2xx
+- [ ] `3.10` Simulação de status/receipts com delay configurável:
   - WPP: `delivered` após `STATUS_DELIVERED_DELAY_MS`, `read` após `STATUS_READ_DELAY_MS`
-  - Instagram: `read` (watermark) após `STATUS_READ_DELAY_MS`
-- [ ] `3.10` Emitir entrada de debug a cada envio e a cada erro
+  - Instagram: `delivery` após `STATUS_DELIVERED_DELAY_MS`, `read` após `STATUS_READ_DELAY_MS`
+- [ ] `3.11` Emitir entrada de debug a cada envio, status e erro
+- [ ] `3.12` Responder ao callback com `200 OK` imediatamente antes de processar (evitar timeout da app)
 
 ---
 
@@ -482,9 +525,11 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 - [ ] `7.4` Validação client-side: URL válida, campos não vazios, formato do identificador
 - [ ] `7.5` Caixa "URL de Callback" (read-only + botão Copiar com feedback "Copiado ✓")
 - [ ] `7.6` Caixa "URL de Verificação" (read-only + botão Copiar) — para registrar no painel Meta
-- [ ] `7.7` Indicador verde/vermelho de status do webhook — atualizado ao salvar
-- [ ] `7.8` Persistência via `localStorage` — restaura configuração no reload
-- [ ] `7.9` Botão "Limpar conversa" — `DELETE /history/{canal}`, limpa UI, mantém config
+- [ ] `7.7` Caixa "Verify Token" (read-only + botão Copiar) — valor de `VERIFY_TOKEN` que a app deve esperar
+- [ ] `7.8` Caixa "App Secret" (read-only + botão Copiar) — valor de `APP_SECRET` para configurar validação de assinatura na app
+- [ ] `7.9` Indicador verde/vermelho de status do webhook — atualizado ao salvar
+- [ ] `7.10` Persistência via `localStorage` — restaura configuração no reload
+- [ ] `7.11` Botão "Limpar conversa" — `DELETE /history/{canal}`, limpa UI, mantém config
 
 ---
 
@@ -518,8 +563,11 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 - [ ] `10.1` Testes unitários: gerador de Message ID (formato wamid e mid)
 - [ ] `10.2` Testes unitários: builder payload WPP texto — todos os campos obrigatórios
 - [ ] `10.3` Testes unitários: builder payload WPP status update
+  - Verificar que `field` é `"messages"` (não `"message_status"`)
+  - Verificar presença dos campos `conversation` e `pricing`
 - [ ] `10.4` Testes unitários: builder payload Instagram texto — estrutura `messaging`
-- [ ] `10.5` Testes unitários: builder payload Instagram read receipt
+- [ ] `10.5` Testes unitários: builder payload Instagram delivery receipt (`delivery.mids` + `watermark`)
+- [ ] `10.5b` Testes unitários: builder payload Instagram read receipt (`read.watermark`)
 - [ ] `10.6` Testes unitários: geração de `X-Hub-Signature-256`
 - [ ] `10.7` Testes unitários: fluxo de verificação `GET /webhook/{canal}`
   - Token correto → 200 + challenge
@@ -581,9 +629,10 @@ Dentro de cada épico: **Red → Green → Refactor** — escreva o teste antes 
 | # | Decisão | Opções | Impacto |
 |---|---------|--------|---------|
 | D1 | Stack | Python 3.12 / FastAPI · Rust / Axum | Define épicos 1, 10 inteiros |
-| D2 | Persistência de config | Apenas memória · `config.json` local | Define `2.1` e UX do `7.8` |
+| D2 | Persistência de config | Apenas memória · `config.json` local | Define `2.1` e UX do `7.10` |
 | D3 | Registro Docker | Docker Hub · GitHub Container Registry | Define `11.3` |
 | D4 | Licença | MIT · Apache 2.0 | Define `12.3` |
+| D5 | Tipos de mensagem v1 | Somente texto *(confirmado)* · incluir imagem | Define `3.2`, `3.4`, Épicos 5 e 6 |
 
 ---
 
@@ -596,3 +645,4 @@ Dentro de cada épico: **Red → Green → Refactor** — escreva o teste antes 
 | R3 | Callback URL inacessível por NAT ou Docker network | `MOCK_BASE_URL` configurável; documentar uso com ngrok |
 | R4 | WebSocket cai em proxies com timeout agressivo | Ping/pong keepalive a cada 30s (Épico 9.3) |
 | R5 | Aplicação rejeita payload por `X-Hub-Signature-256` inválida | `APP_SECRET` configurável; documentar como alinhar com a app |
+| R6 | App valida `field` no payload de status — mock usava valor errado | Corrigido: `field` agora é `"messages"` em todos os casos (spec oficial) |
