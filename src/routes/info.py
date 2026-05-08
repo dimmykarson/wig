@@ -6,6 +6,14 @@ from src.models import Platform
 router = APIRouter()
 
 
+@router.get("/settings-info")
+async def settings_info():
+    return {
+        "verify_token": settings.verify_token,
+        "app_secret": settings.app_secret,
+    }
+
+
 @router.get("/info")
 async def info():
     base = settings.mock_base_url.rstrip("/")

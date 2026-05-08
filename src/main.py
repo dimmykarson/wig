@@ -3,6 +3,8 @@ import datetime
 import json
 import logging
 import time
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -21,6 +23,7 @@ from src.builders.whatsapp import (
     build_text_payload as wpp_text,
 )
 from src.models import DebugEntry, Platform
+from src.persistence import load_config
 from src.routes.callback import router as callback_router
 from src.routes.config import router as config_router
 from src.routes.health import router as health_router
@@ -32,7 +35,23 @@ from src.state import app_state
 logging.basicConfig(level=settings.log_level)
 log = logging.getLogger(__name__)
 
-app = FastAPI(title="wig — WhatsApp & Instagram Mock", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app):
+    data = load_config()
+    for platform in Platform:
+        saved = data.get(platform.value)
+        if saved:
+            ch = app_state.get(platform)
+            ch.config.webhook_url = saved.get("webhook_url", "")
+            ch.config.user_name = saved.get("user_name", "")
+            ch.config.identifier = saved.get("identifier", "")
+            ch.config.configured = bool(ch.config.webhook_url)
+            log.info("Config restaurada para %s", platform.value)
+    yield
+
+
+app = FastAPI(title="wig — WhatsApp & Instagram Mock", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -96,6 +115,7 @@ async def _handle_outgoing(platform: Platform, text: str) -> None:
 
     await ch.websocket.send_json({"type": "sent", "text": text, "ts": now})
 
+    http_status = None
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
@@ -114,7 +134,6 @@ async def _handle_outgoing(platform: Platform, text: str) -> None:
                 "text": f"Webhook retornou {resp.status_code}",
             })
     except Exception as exc:
-        http_status = None
         await ch.websocket.send_json({"type": "error", "text": str(exc)})
 
     ch.add_debug(DebugEntry(
@@ -141,7 +160,7 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
     else:
         delivered_payload = build_delivery_receipt(cfg, [msg_id], watermark)
 
-    _send_status_debug(ch, delivered_payload)
+    ch.add_debug(DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=delivered_payload))
     if ch.websocket:
         await ch.websocket.send_json({"type": "status", "status": "delivered"})
 
@@ -153,21 +172,16 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
     else:
         read_payload = build_read_receipt(cfg, watermark)
 
-    _send_status_debug(ch, read_payload)
+    ch.add_debug(DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=read_payload))
     if ch.websocket:
         await ch.websocket.send_json({"type": "status", "status": "read"})
 
 
-def _send_status_debug(ch, payload: dict) -> None:
-    ch.add_debug(DebugEntry(
-        direction="status",
-        timestamp_ms=int(time.time() * 1000),
-        payload=payload,
-    ))
-
-
 # ── UI ─────────────────────────────────────────────────────────────────────────
+
+_UI_FILE = Path(__file__).parent.parent / "ui" / "index.html"
+
 
 @app.get("/", response_class=HTMLResponse)
 async def ui():
-    return HTMLResponse("<h1>wig — UI em construção</h1>")
+    return HTMLResponse(_UI_FILE.read_text(encoding="utf-8"))

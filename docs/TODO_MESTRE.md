@@ -472,82 +472,75 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 
 ### ÉPICO 4 — Frontend: shell e layout
 
-- [ ] `4.1` HTML/CSS/JS embutido no servidor — zero dependência de build externo
-- [ ] `4.2` Dois frames de celular lado a lado, centralizados na viewport
-- [ ] `4.3` Frame estilo iPhone: notch, status bar, bordas arredondadas
-- [ ] `4.4` Cabeçalho de página com nome do projeto e link para repositório
-- [ ] `4.5` Em telas menores: frames empilham em coluna única
+- [x] `4.1` HTML/CSS/JS em `ui/index.html`, servido pelo FastAPI — zero dependência de build
+- [x] `4.2` Dois frames de celular lado a lado, centralizados na viewport
+- [x] `4.3` Frame estilo iPhone: notch, status bar, bordas arredondadas
+- [x] `4.4` Cabeçalho de página com nome do projeto e link para repositório
+- [x] `4.5` Em telas menores: frames empilham em coluna única
 
 ---
 
 ### ÉPICO 5 — Frontend: chat WhatsApp
 
-- [ ] `5.1` Tema escuro — fundo `#0B141A`, padrão de fundo característico do WPP
-- [ ] `5.2` Barra de topo: avatar, nome do contato, status "online"
-- [ ] `5.3` Balão enviado (direita, `#005C4B`, com cauda)
-- [ ] `5.4` Balão recebido (esquerda, `#202C33`, com cauda)
-- [ ] `5.5` Timestamp em cada balão
-- [ ] `5.6` Check marks: ✓ enviado · ✓✓ entregue · ✓✓ azul lido (atualiza via evento `status`)
-- [ ] `5.7` Indicador "digitando..." animado enquanto aguarda resposta
-- [ ] `5.8` Campo de texto + botão enviar; Enter envia, Shift+Enter quebra linha
-- [ ] `5.9` Auto-scroll para última mensagem
+- [x] `5.1` Tema escuro — fundo `#0B141A`, padrão de fundo característico do WPP
+- [x] `5.2` Barra de topo: avatar, nome do contato, status "online"
+- [x] `5.3` Balão enviado (direita, `#005C4B`, com cauda)
+- [x] `5.4` Balão recebido (esquerda, `#202C33`, com cauda)
+- [x] `5.5` Timestamp em cada balão
+- [x] `5.6` Check marks: ✓ enviado · ✓✓ entregue · ✓✓ azul lido (atualiza via evento `status`)
+- [x] `5.7` Indicador "digitando..." animado enquanto aguarda resposta
+- [x] `5.8` Campo de texto + botão enviar; Enter envia, Shift+Enter quebra linha
+- [x] `5.9` Auto-scroll para última mensagem
 
 ---
 
 ### ÉPICO 6 — Frontend: chat Instagram
 
-- [ ] `6.1` Tema claro — fundo branco, bordas cinza suave
-- [ ] `6.2` Barra de topo: avatar com gradiente IG, nome do contato
-- [ ] `6.3` Balão enviado (direita, `#0095F6`)
-- [ ] `6.4` Balão recebido (esquerda, `#EFEFEF`)
-- [ ] `6.5` Balões sem cauda, bordas muito arredondadas
-- [ ] `6.6` Timestamp como tooltip ao passar o mouse
-- [ ] `6.7` Indicador "digitando..." (três pontos pulsantes)
-- [ ] `6.8` Campo de texto + botão enviar
-- [ ] `6.9` Auto-scroll para última mensagem
+- [x] `6.1` Tema claro — fundo branco, bordas cinza suave
+- [x] `6.2` Barra de topo: avatar com gradiente IG, nome do contato
+- [x] `6.3` Balão enviado (direita, `#0095F6`)
+- [x] `6.4` Balão recebido (esquerda, `#EFEFEF`)
+- [x] `6.5` Balões sem cauda, bordas muito arredondadas
+- [x] `6.6` Timestamp como tooltip ao passar o mouse
+- [x] `6.7` Indicador "digitando..." (três pontos pulsantes)
+- [x] `6.8` Campo de texto + botão enviar
+- [x] `6.9` Auto-scroll para última mensagem
 
 ---
 
 ### ÉPICO 7 — Frontend: painel de configuração
 
-- [ ] `7.1` Ícone ⚙ no cabeçalho de cada celular — abre painel colapsável
-- [ ] `7.2` Campos do painel:
-  - **Webhook URL** — onde o mock envia os eventos
-  - **Nome do contato** — remetente simulado
-  - **Identificador** — número E.164 (WPP) ou IGSID (Instagram)
-- [ ] `7.3` Botão "Salvar" — `PATCH /config/{canal}` + fecha painel
-- [ ] `7.4` Validação client-side: URL válida, campos não vazios, formato do identificador
-- [ ] `7.5` Caixa "URL de Callback" (read-only + botão Copiar com feedback "Copiado ✓")
-- [ ] `7.6` Caixa "URL de Verificação" (read-only + botão Copiar) — para registrar no painel Meta
-- [ ] `7.7` Caixa "Verify Token" (read-only + botão Copiar) — valor de `VERIFY_TOKEN` que a app deve esperar
-- [ ] `7.8` Caixa "App Secret" (read-only + botão Copiar) — valor de `APP_SECRET` para configurar validação de assinatura na app
-- [ ] `7.9` Indicador verde/vermelho de status do webhook — atualizado ao salvar
-- [ ] `7.10` Persistência via `localStorage` — restaura configuração no reload
-- [ ] `7.11` Botão "Limpar conversa" — `DELETE /history/{canal}`, limpa UI, mantém config
+- [x] `7.1` Ícone ⚙ no cabeçalho de cada celular — abre painel colapsável
+- [x] `7.2` Campos: Webhook URL · Nome do contato · Identificador
+- [x] `7.3` Botão "Salvar" — `PATCH /config/{canal}` + fecha painel
+- [x] `7.4` Validação client-side: URL válida, campos não vazios, formato do identificador
+- [x] `7.5` Caixa "URL de Callback" (read-only + botão Copiar com feedback "Copiado ✓")
+- [x] `7.6` Caixa "URL de Verificação" (read-only + botão Copiar)
+- [x] `7.7` Caixa "Verify Token" (read-only + botão Copiar)
+- [x] `7.8` Caixa "App Secret" (read-only + botão Copiar)
+- [x] `7.9` Indicador verde/vermelho de status do webhook — atualizado ao salvar
+- [x] `7.10` Persistência via `localStorage` — restaura configuração no reload
+- [x] `7.11` Botão "Limpar conversa" — `DELETE /history/{canal}`, limpa UI, mantém config
 
 ---
 
 ### ÉPICO 8 — Frontend: painel de debug
 
-- [ ] `8.1` Card colapsável abaixo de cada celular: "🔍 Debug"
-- [ ] `8.2` Fechado por padrão; estado persistido em `localStorage`
-- [ ] `8.3` Cada entrada exibe:
-  - Direção: `→ ENVIADO` (verde) · `← RECEBIDO` (azul) · `⚡ STATUS` (cinza) · `✕ ERRO` (vermelho)
-  - Timestamp com hora e milissegundos
-  - Status HTTP quando aplicável
-  - JSON formatado com syntax highlighting básico
-- [ ] `8.4` Botão "Copiar JSON" por entrada
-- [ ] `8.5` Botão "Limpar log" — apaga só as entradas de debug
-- [ ] `8.6` Limite de `MAX_DEBUG_ENTRIES` entradas; remove a mais antiga ao atingir o limite
-- [ ] `8.7` Scroll interno no card — não expande a página
+- [x] `8.1` Card colapsável abaixo de cada celular: "🔍 Debug"
+- [x] `8.2` Fechado por padrão; estado persistido em `localStorage`
+- [x] `8.3` Cada entrada: direção colorida · timestamp com ms · status HTTP · JSON com syntax highlighting
+- [x] `8.4` Botão "Copiar JSON" por entrada
+- [x] `8.5` Botão "Limpar log"
+- [x] `8.6` Limite de `MAX_DEBUG_ENTRIES` entradas (FIFO)
+- [x] `8.7` Scroll interno no card
 
 ---
 
 ### ÉPICO 9 — WebSocket: resiliência
 
-- [ ] `9.1` Reconexão automática com backoff exponencial: 1s → 2s → 4s → 8s (máx. 30s)
-- [ ] `9.2` Indicador visual de conexão por celular: ponto verde (conectado) / cinza pulsante (reconectando)
-- [ ] `9.3` Ping/pong keepalive a cada 30s para manter conexão viva em proxies
+- [x] `9.1` Reconexão automática com backoff exponencial: 1s → 2s → 4s → ... → 30s
+- [x] `9.2` Indicador visual de conexão: ponto verde (conectado) / laranja pulsante (reconectando)
+- [x] `9.3` Ping/keepalive a cada 25s para manter conexão viva em proxies
 - [ ] `9.4` Timeout no servidor: fechar conexão inativa após 5 min
 
 ---
