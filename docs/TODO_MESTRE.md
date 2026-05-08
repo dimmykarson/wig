@@ -541,52 +541,52 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 - [x] `9.1` Reconexão automática com backoff exponencial: 1s → 2s → 4s → ... → 30s
 - [x] `9.2` Indicador visual de conexão: ponto verde (conectado) / laranja pulsante (reconectando)
 - [x] `9.3` Ping/keepalive a cada 25s para manter conexão viva em proxies
-- [ ] `9.4` Timeout no servidor: fechar conexão inativa após 5 min
+- [x] `9.4` Timeout no servidor: fechar conexão inativa após 5 min
 
 ---
 
 ### ÉPICO 10 — Qualidade e testes
 
-- [ ] `10.1` Testes unitários: gerador de Message ID (formato wamid e mid)
-- [ ] `10.2` Testes unitários: builder payload WPP texto — todos os campos obrigatórios
-- [ ] `10.3` Testes unitários: builder payload WPP status update
+- [x] `10.1` Testes unitários: gerador de Message ID (formato wamid e mid)
+- [x] `10.2` Testes unitários: builder payload WPP texto — todos os campos obrigatórios
+- [x] `10.3` Testes unitários: builder payload WPP status update
   - Verificar que `field` é `"messages"` (não `"message_status"`)
   - Verificar presença dos campos `conversation` e `pricing`
-- [ ] `10.4` Testes unitários: builder payload Instagram texto — estrutura `messaging`
-- [ ] `10.5` Testes unitários: builder payload Instagram delivery receipt (`delivery.mids` + `watermark`)
-- [ ] `10.5b` Testes unitários: builder payload Instagram read receipt (`read.watermark`)
-- [ ] `10.6` Testes unitários: geração de `X-Hub-Signature-256`
-- [ ] `10.7` Testes unitários: fluxo de verificação `GET /webhook/{canal}`
+- [x] `10.4` Testes unitários: builder payload Instagram texto — estrutura `messaging`
+- [x] `10.5` Testes unitários: builder payload Instagram delivery receipt (`delivery.mids` + `watermark`)
+- [x] `10.5b` Testes unitários: builder payload Instagram read receipt (`read.watermark`)
+- [x] `10.6` Testes unitários: geração de `X-Hub-Signature-256`
+- [x] `10.7` Testes unitários: fluxo de verificação `GET /webhook/{canal}`
   - Token correto → 200 + challenge
   - Token errado → 403
   - `hub.mode` diferente de `subscribe` → 403
-- [ ] `10.8` Testes de integração: `PATCH /config/{canal}` — sucesso, campos inválidos, canal inválido
-- [ ] `10.9` Testes de integração: `DELETE /history/{canal}`
-- [ ] `10.10` Testes de integração: `POST /callback/{canal}` — sucesso, payload malformado, canal inválido
-- [ ] `10.11` Testes de integração: envio ao webhook — simular 200, 500 e timeout
-- [ ] `10.12` Cobertura mínima: 80%
+- [x] `10.8` Testes de integração: `PATCH /config/{canal}` — sucesso, campos inválidos, canal inválido
+- [x] `10.9` Testes de integração: `DELETE /history/{canal}`
+- [x] `10.10` Testes de integração: `POST /callback/{canal}` — sucesso, payload malformado, canal inválido
+- [x] `10.11` Testes de integração: envio ao webhook — simular 200, 500 e timeout
+- [x] `10.12` Cobertura mínima: 80% (98% atingida, 68 testes)
 
 ---
 
 ### ÉPICO 11 — CI/CD e publicação
 
-- [ ] `11.1` GitHub Actions `test.yml` — testes em todo push e PR
-- [ ] `11.2` GitHub Actions `lint.yml` — linting e formatação em todo push e PR
-- [ ] `11.3` GitHub Actions `docker-publish.yml` — publicar imagem ao criar tag `v*.*.*`
+- [x] `11.1` GitHub Actions `test.yml` — testes em todo push e PR
+- [x] `11.2` GitHub Actions `lint.yml` — linting e formatação em todo push e PR
+- [x] `11.3` GitHub Actions `docker-publish.yml` — publicar imagem ao criar tag `v*.*.*`
   - Build multi-platform: `linux/amd64` e `linux/arm64`
   - Push para registro escolhido em D3
-- [ ] `11.4` Badges no README: CI · Docker pulls · image size · license
-- [ ] `11.5` `CHANGELOG.md` com formato Keep a Changelog
+- [x] `11.4` Badges no README: CI · lint · Docker pulls · image size · license
+- [x] `11.5` `CHANGELOG.md` com formato Keep a Changelog
 
 ---
 
 ### ÉPICO 12 — Documentação pública
 
-- [ ] `12.1` `README.md` completo (ver seção separada no repositório)
-- [ ] `12.2` `CONTRIBUTING.md` — como rodar localmente, abrir PR, convenção de commits
-- [ ] `12.3` `LICENSE`
-- [ ] `12.4` `.github/ISSUE_TEMPLATE/` — bug report e feature request
-- [ ] `12.5` `docker-compose.example.yml` — exemplo de uso com aplicação consumidora
+- [x] `12.1` `README.md` completo (ver seção separada no repositório)
+- [x] `12.2` `CONTRIBUTING.md` — como rodar localmente, abrir PR, convenção de commits
+- [x] `12.3` `LICENSE` (MIT)
+- [x] `12.4` `.github/ISSUE_TEMPLATE/` — bug report e feature request
+- [x] `12.5` `docker-compose.example.yml` — exemplo de uso com aplicação consumidora
 
 ---
 

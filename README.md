@@ -2,9 +2,11 @@
 
 > Mock genérico e configurável de WhatsApp e Instagram para desenvolvimento e testes de integrações Meta Webhooks.
 
-[![CI](https://github.com/dimmykarson/wig/actions/workflows/test.yml/badge.svg)](https://github.com/dimmykarson/wig/actions)
+[![CI](https://github.com/dimmykarson/wig/actions/workflows/test.yml/badge.svg)](https://github.com/dimmykarson/wig/actions/workflows/test.yml)
+[![Lint](https://github.com/dimmykarson/wig/actions/workflows/lint.yml/badge.svg)](https://github.com/dimmykarson/wig/actions/workflows/lint.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dimmykarson/wig)](https://hub.docker.com/r/dimmykarson/wig)
+[![Docker Image Size](https://img.shields.io/docker/image-size/dimmykarson/wig/latest)](https://hub.docker.com/r/dimmykarson/wig)
 
 ---
 

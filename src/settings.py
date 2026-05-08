@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     max_debug_entries: int = 50
     status_delivered_delay_ms: int = 1000
     status_read_delay_ms: int = 3000
+    ws_inactivity_timeout_s: int = 300  # 5 min — server closes idle connections
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

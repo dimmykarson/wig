@@ -84,7 +84,16 @@ async def websocket_endpoint(websocket: WebSocket, canal: str):
 
     try:
         while True:
-            data = await websocket.receive_json()
+            try:
+                data = await asyncio.wait_for(
+                    websocket.receive_json(),
+                    timeout=settings.ws_inactivity_timeout_s,
+                )
+            except asyncio.TimeoutError:
+                log.info("WS inativo por %ss — fechando: %s", settings.ws_inactivity_timeout_s, canal)
+                await websocket.close(code=1001)
+                ch.websocket = None
+                return
             text = data.get("text", "").strip()
             if not text:
                 continue

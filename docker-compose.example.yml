@@ -1,0 +1,45 @@
+# docker-compose.example.yml
+#
+# Exemplo de uso do wig junto com uma aplicação consumidora.
+# Copie este arquivo para docker-compose.yml e ajuste conforme necessário.
+#
+# Pré-requisito: crie um arquivo .env com as variáveis abaixo.
+
+services:
+  wig:
+    image: dimmykarson/wig:latest
+    ports:
+      - "5504:5504"
+    environment:
+      PORT: 5504
+      # URL pública do mock — use o IP/hostname acessível pela sua aplicação
+      MOCK_BASE_URL: http://wig:5504
+      APP_SECRET: troque-por-um-secret-forte
+      VERIFY_TOKEN: troque-por-um-token-forte
+      LOG_LEVEL: INFO
+      MAX_DEBUG_ENTRIES: 50
+      STATUS_DELIVERED_DELAY_MS: 1000
+      STATUS_READ_DELAY_MS: 3000
+      WS_INACTIVITY_TIMEOUT_S: 300
+    volumes:
+      # Persiste config.json entre restarts do container
+      - wig_config:/app/config
+    restart: unless-stopped
+
+  # Exemplo: sua aplicação que recebe os webhooks do mock
+  minha-app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Configure sua app para apontar o webhook para o wig
+      WHATSAPP_WEBHOOK_URL: http://wig:5504/callback/whatsapp
+      INSTAGRAM_WEBHOOK_URL: http://wig:5504/callback/instagram
+      # Use os mesmos valores do wig
+      META_APP_SECRET: troque-por-um-secret-forte
+      META_VERIFY_TOKEN: troque-por-um-token-forte
+    depends_on:
+      - wig
+
+volumes:
+  wig_config:

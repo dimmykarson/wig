@@ -15,6 +15,9 @@ Cargo.lock
 # Env
 .env
 
+# Runtime state (generated at runtime, not versioned)
+config.json
+
 # Docker
 *.log
 
