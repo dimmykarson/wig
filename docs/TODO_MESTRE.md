@@ -20,21 +20,23 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 
 ## Objetivos
 
-- Simular dois canais de mensageria em uma única interface web: **WhatsApp** e **Instagram**
-- Ser **100% configurável pela UI**, sem necessidade de alterar código ou reiniciar o servidor
-- Expor a própria **URL de callback** para facilitar a configuração da aplicação consumidora
-- Oferecer um **painel de debug** com os payloads completos enviados e recebidos
-- Ser distribuível como imagem Docker pública, pronto para uso com uma linha de comando
+- Simular dois canais em uma única página web: **WhatsApp** e **Instagram Direct**
+- Ser **100% configurável pela UI** sem reiniciar o servidor
+- Gerar payloads **fiéis ao formato oficial Meta** — o que a sua aplicação recebe do mock é idêntico ao que receberia da Meta em produção
+- Assinar os payloads com `X-Hub-Signature-256` para que a validação de assinatura da aplicação funcione normalmente
+- Expor endpoint de **verificação de webhook** (`GET /webhook/{canal}`) para que a aplicação possa testar seu próprio fluxo de registro
+- Simular **status updates** (sent → delivered → read) após o envio de cada mensagem
+- Oferecer **painel de debug** com payloads completos em ambos os sentidos
+- Ser distribuível como imagem Docker pública — pronto para uso com uma linha de comando
 
 ---
 
 ## Não-objetivos
 
 - Não simula autenticação OAuth da Meta
-- Não valida tokens de acesso reais
-- Não implementa todos os tipos de mensagem da API Meta (escopo inicial: texto)
-- Não persiste dados em banco de dados (estado apenas em memória + localStorage)
-- Não é adequado para uso em produção — é uma ferramenta de desenvolvimento
+- Não valida tokens de acesso reais da Graph API
+- Não persiste dados em banco — estado apenas em memória + `localStorage`
+- Não é adequado para uso em produção
 
 ---
 
@@ -43,15 +45,16 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 | Termo | Significado |
 |---|---|
 | `canal` | Um dos dois simuladores: `whatsapp` ou `instagram` |
-| `webhook_url` | URL da aplicação consumidora que recebe os eventos simulados |
-| `callback_url` | URL do mock que a aplicação consumidora deve chamar para enviar respostas |
-| `identifier` | Número de telefone (WPP) ou `@handle` (Instagram) do contato simulado |
-| `wamid` | WhatsApp Message ID — identificador único de mensagem no formato Meta |
-| `mid` | Instagram Message ID — equivalente ao `wamid` no Instagram |
-| `waba_id` | WhatsApp Business Account ID — identificador da conta business |
-| `wa_id` | Identificador do contato no WhatsApp (geralmente `55` + DDD + número) |
-| `sender_id` | Identificador do remetente no Instagram |
-| payload | Corpo JSON enviado ao webhook da aplicação, no formato Meta oficial |
+| `webhook_url` | URL da aplicação que recebe os eventos simulados |
+| `callback_url` | URL do mock que a aplicação chama para enviar respostas |
+| `identifier` | Número E.164 (WPP) ou IGSID numérico (Instagram) do contato simulado |
+| `wamid` | WhatsApp Message ID — formato: `wamid.HBgL<base64>` |
+| `mid` | Instagram Message ID — formato: `mid.$<base64>` |
+| `waba_id` | WhatsApp Business Account ID |
+| `wa_id` | Identificador E.164 do contato no WhatsApp (ex: `5586999990000`) |
+| `IGSID` | Instagram-Scoped User ID — identificador numérico do usuário no Instagram |
+| `app_secret` | Chave usada para assinar os payloads com HMAC-SHA256 |
+| `verify_token` | Token configurado para o fluxo de verificação de webhook (`hub.verify_token`) |
 
 ---
 
@@ -60,44 +63,48 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 ### Visão geral
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    BROWSER (UI)                     │
-│                                                     │
-│  ┌─────────────────┐    ┌─────────────────────────┐ │
-│  │  Celular WPP    │    │    Celular Instagram     │ │
-│  │  ┌───────────┐  │    │  ┌─────────────────────┐│ │
-│  │  │  Chat UI  │  │    │  │      Chat UI        ││ │
-│  │  └─────┬─────┘  │    │  └──────────┬──────────┘│ │
-│  │        │ WS     │    │             │ WS         │ │
-│  └────────┼────────┘    └─────────────┼────────────┘ │
-└───────────┼─────────────────────────-─┼──────────────┘
-            │ WebSocket /ws/whatsapp    │ WebSocket /ws/instagram
-            ▼                          ▼
-┌─────────────────────────────────────────────────────┐
-│                   MOCK SERVER                       │
-│                                                     │
-│  WebSocket Handler ──► Payload Builder ──► HTTP POST│
-│       ▲                                      │      │
-│       │                                      ▼      │
-│  POST /callback/{canal}          webhook_url da app  │
-│       ▲                                             │
-└───────┼─────────────────────────────────────────────┘
-        │ POST /callback/{canal}
-┌───────┼─────────────────────────────────────────────┐
-│       │       APLICAÇÃO CONSUMIDORA                 │
-│  Processa evento ──► chama /callback/{canal}        │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        BROWSER (UI)                         │
+│                                                             │
+│  ┌──────────────────────┐    ┌──────────────────────────┐   │
+│  │    Celular WPP       │    │    Celular Instagram      │   │
+│  │  ┌────────────────┐  │    │  ┌──────────────────────┐│   │
+│  │  │    Chat UI     │  │    │  │      Chat UI         ││   │
+│  │  └───────┬────────┘  │    │  └──────────┬───────────┘│   │
+│  │          │ WS        │    │             │ WS          │   │
+│  └──────────┼───────────┘    └─────────────┼────────────┘   │
+└─────────────┼─────────────────────────────-┼────────────────┘
+              │ /ws/whatsapp                 │ /ws/instagram
+              ▼                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       MOCK SERVER                           │
+│                                                             │
+│  WS Handler → Payload Builder → X-Hub-Signature → HTTP POST │
+│      ▲                                              │       │
+│      │                                              ▼       │
+│  POST /callback/{canal}                    webhook_url      │
+│      ▲                                                      │
+│  GET /webhook/{canal}  ← verificação de webhook da app      │
+└──────┼──────────────────────────────────────────────────────┘
+       │ POST /callback/{canal}
+┌──────┼──────────────────────────────────────────────────────┐
+│      │             APLICAÇÃO CONSUMIDORA                    │
+│  Valida X-Hub-Signature → processa → chama /callback        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Fluxo: usuário envia mensagem
 
 ```
-1. Usuário digita mensagem na UI do celular simulado
+1. Usuário digita mensagem na UI
 2. UI envia via WebSocket: {"text": "olá"}
-3. Mock monta payload no formato Meta (WPP ou IG)
-4. Mock faz POST para webhook_url configurada
-5. Mock envia {"type": "sent", "text": "olá", "ts": "14:32"} de volta ao WebSocket
-6. UI exibe balão de mensagem enviada
+3. Mock gera message ID único (wamid / mid)
+4. Mock monta payload no formato Meta oficial
+5. Mock calcula X-Hub-Signature-256 com HMAC-SHA256(app_secret, body)
+6. Mock faz POST para webhook_url com o header de assinatura
+7. Mock envia {"type": "sent", "text": "olá", "ts": "14:32"} ao WebSocket
+8. Após 1s: mock dispara status "delivered" (simulação)
+9. Após 3s: mock dispara status "read" (simulação)
 ```
 
 ### Fluxo: aplicação responde
@@ -106,7 +113,18 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 1. Aplicação processa o evento e chama POST /callback/whatsapp (ou /instagram)
 2. Mock recebe o JSON de resposta
 3. Mock envia {"type": "received", "text": "...", "ts": "14:33"} via WebSocket
-4. UI exibe balão de resposta recebida
+4. UI exibe balão de resposta
+```
+
+### Fluxo: verificação de webhook
+
+```
+1. Desenvolvedor acessa GET /webhook/whatsapp?hub.mode=subscribe
+                                              &hub.verify_token=<token>
+                                              &hub.challenge=<random>
+2. Mock valida hub.verify_token contra VERIFY_TOKEN configurado
+3. Mock responde com hub.challenge em texto puro (HTTP 200)
+   ou HTTP 403 se o token não bater
 ```
 
 ---
@@ -117,21 +135,20 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/health` | Health check — retorna `{"status": "ok"}` |
-| `GET` | `/info` | Retorna URLs de callback do mock e status dos canais |
-| `GET` | `/config` | Retorna configuração atual dos dois canais |
-| `PATCH` | `/config/{canal}` | Atualiza configuração de um canal sem reiniciar |
-| `DELETE` | `/history/{canal}` | Limpa histórico de mensagens do canal |
-| `POST` | `/callback/{canal}` | Recebe resposta da aplicação consumidora |
-| `WS` | `/ws/{canal}` | WebSocket bidirecional entre UI e backend |
+| `GET` | `/health` | Health check — `{"status": "ok"}` |
+| `GET` | `/info` | URLs de callback e status dos canais |
+| `GET` | `/config` | Configuração atual dos dois canais |
+| `PATCH` | `/config/{canal}` | Atualiza configuração em runtime |
+| `DELETE` | `/history/{canal}` | Limpa histórico de mensagens |
+| `GET` | `/webhook/{canal}` | Fluxo de verificação de webhook (`hub.challenge`) |
+| `POST` | `/callback/{canal}` | Recebe resposta da aplicação |
+| `WS` | `/ws/{canal}` | WebSocket bidirecional UI ↔ backend |
 
-`{canal}` aceita: `whatsapp` ou `instagram`
+`{canal}`: `whatsapp` ou `instagram`
 
 ---
 
-### Schemas
-
-#### `PATCH /config/{canal}` — corpo da requisição
+### `PATCH /config/{canal}` — corpo
 
 ```json
 {
@@ -141,15 +158,32 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 }
 ```
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| `webhook_url` | string (URL) | sim | Para onde o mock envia os eventos |
-| `user_name` | string | sim | Nome do contato simulado |
-| `identifier` | string | sim | Número E.164 (WPP) ou `@handle` (Instagram) |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `webhook_url` | string (URL) | Para onde o mock envia os eventos |
+| `user_name` | string | Nome do contato simulado |
+| `identifier` | string | Número E.164 (WPP) ou IGSID numérico (Instagram) |
 
 ---
 
-#### `GET /info` — resposta
+### `GET /webhook/{canal}` — verificação de webhook
+
+Simula o fluxo de verificação que a Meta faz ao registrar um webhook.
+
+**Query params recebidos:**
+
+| Param | Valor esperado |
+|---|---|
+| `hub.mode` | `subscribe` |
+| `hub.verify_token` | Deve bater com `VERIFY_TOKEN` configurado no mock |
+| `hub.challenge` | String aleatória — devolvida integralmente na resposta |
+
+**Resposta de sucesso:** `200 text/plain` com o valor de `hub.challenge`
+**Resposta de falha:** `403 Forbidden`
+
+---
+
+### `GET /info` — resposta
 
 ```json
 {
@@ -157,11 +191,13 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
   "channels": {
     "whatsapp": {
       "callback_url": "http://localhost:5504/callback/whatsapp",
+      "webhook_verification_url": "http://localhost:5504/webhook/whatsapp",
       "websocket_url": "ws://localhost:5504/ws/whatsapp",
       "configured": true
     },
     "instagram": {
       "callback_url": "http://localhost:5504/callback/instagram",
+      "webhook_verification_url": "http://localhost:5504/webhook/instagram",
       "websocket_url": "ws://localhost:5504/ws/instagram",
       "configured": false
     }
@@ -171,7 +207,7 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 
 ---
 
-#### `POST /callback/{canal}` — corpo esperado da aplicação
+### `POST /callback/{canal}` — formato esperado da aplicação
 
 ```json
 {
@@ -180,46 +216,40 @@ Este projeto é um **mock genérico, configurável e de código aberto** que qua
 }
 ```
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| `text` | string | sim | Texto da resposta |
-| `type` | string | não | Tipo da mensagem (default: `"text"`) |
-
-Resposta de sucesso: `{"ok": true}`
+Resposta: `200 {"ok": true}`
 
 ---
 
 ### Protocolo WebSocket
 
-**Cliente → Servidor** (UI envia mensagem):
-
+**Cliente → Servidor:**
 ```json
-{"text": "mensagem digitada pelo usuário"}
+{"text": "mensagem do usuário"}
 ```
 
-**Servidor → Cliente** (eventos enviados à UI):
-
+**Servidor → Cliente:**
 ```json
-// mensagem enviada com sucesso ao webhook
-{"type": "sent", "text": "olá", "ts": "14:32"}
-
-// aplicação está "digitando" (enviado antes da resposta)
-{"type": "typing", "status": true}
-
-// resposta recebida da aplicação
+{"type": "sent",     "text": "olá",    "ts": "14:32"}
+{"type": "typing",   "status": true}
 {"type": "received", "msg_type": "text", "text": "Olá!", "ts": "14:33"}
-
-// erro ao chamar o webhook
-{"type": "error", "text": "Webhook não respondeu: Connection refused"}
-
-// histórico limpo
+{"type": "status",   "status": "delivered", "ts": "14:32"}
+{"type": "status",   "status": "read",      "ts": "14:32"}
+{"type": "error",    "text": "Webhook não respondeu: Connection refused"}
 {"type": "history_cleared"}
 ```
 
 ---
 
-### Payload WhatsApp (enviado ao webhook da aplicação)
+### Payload WhatsApp — enviado ao webhook da aplicação
 
+O payload é **idêntico ao que a Meta envia em produção**, incluindo o header `X-Hub-Signature-256`.
+
+**Header:**
+```
+X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
+```
+
+**Corpo (texto):**
 ```json
 {
   "object": "whatsapp_business_account",
@@ -233,15 +263,15 @@ Resposta de sucesso: `{"ok": true}`
           "phone_number_id": "MOCK_PHONE_NUMBER_ID"
         },
         "contacts": [{
-          "profile": {"name": "João Silva"},
+          "profile": { "name": "João Silva" },
           "wa_id": "5586999990000"
         }],
         "messages": [{
           "from": "5586999990000",
-          "id": "wamid.mock_a1b2c3d4e5f6g7h8",
+          "id": "wamid.HBgLmock<16-hex-chars>",
           "timestamp": "1746700000",
           "type": "text",
-          "text": {"body": "mensagem do usuário"}
+          "text": { "body": "mensagem do usuário" }
         }]
       },
       "field": "messages"
@@ -250,23 +280,79 @@ Resposta de sucesso: `{"ok": true}`
 }
 ```
 
+**Status update (simulado após envio):**
+```json
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "MOCK_WABA_ID",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "5586999990000",
+          "phone_number_id": "MOCK_PHONE_NUMBER_ID"
+        },
+        "statuses": [{
+          "id": "wamid.HBgLmock<16-hex-chars>",
+          "recipient_id": "5586999990000",
+          "status": "delivered",
+          "timestamp": "1746700001"
+        }]
+      },
+      "field": "message_status"
+    }]
+  }]
+}
+```
+
 ---
 
-### Payload Instagram (enviado ao webhook da aplicação)
+### Payload Instagram — enviado ao webhook da aplicação
 
+**Estrutura diferente do WhatsApp:** usa `messaging` direto no entry, sem camada `changes`.
+
+**Header:**
+```
+X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
+```
+
+**Corpo (texto):**
 ```json
 {
   "object": "instagram",
   "entry": [{
     "id": "MOCK_IG_ACCOUNT_ID",
+    "time": 1746700000,
     "messaging": [{
-      "sender": {"id": "mock_sender_123"},
-      "recipient": {"id": "MOCK_IG_PAGE_ID"},
+      "sender":    { "id": "123456789" },
+      "recipient": { "id": "MOCK_IG_ACCOUNT_ID" },
       "timestamp": 1746700000,
       "message": {
-        "mid": "mid.mock_a1b2c3d4e5f6g7h8",
-        "text": "mensagem do usuário"
+        "mid": "mid.$mock<16-hex-chars>",
+        "text": "mensagem do usuário",
+        "attachments": [],
+        "is_deleted": false,
+        "is_echo": false,
+        "is_unsupported": false
       }
+    }]
+  }]
+}
+```
+
+**Read receipt (simulado após envio):**
+```json
+{
+  "object": "instagram",
+  "entry": [{
+    "id": "MOCK_IG_ACCOUNT_ID",
+    "time": 1746700003,
+    "messaging": [{
+      "sender":    { "id": "123456789" },
+      "recipient": { "id": "MOCK_IG_ACCOUNT_ID" },
+      "timestamp": 1746700003,
+      "read": { "watermark": 1746700000 }
     }]
   }]
 }
@@ -278,10 +364,14 @@ Resposta de sucesso: `{"ok": true}`
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `PORT` | `5504` | Porta em que o servidor escuta |
-| `MOCK_BASE_URL` | `http://localhost:5504` | URL pública do mock — usada para gerar a callback URL exibida na UI |
+| `PORT` | `5504` | Porta do servidor |
+| `MOCK_BASE_URL` | `http://localhost:5504` | URL pública do mock — usada para gerar callback URLs na UI |
+| `APP_SECRET` | `mock-secret` | Chave para assinar os payloads com `X-Hub-Signature-256` |
+| `VERIFY_TOKEN` | `mock-verify-token` | Token para o fluxo de verificação de webhook (`hub.verify_token`) |
 | `LOG_LEVEL` | `INFO` | Nível de log (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `MAX_DEBUG_ENTRIES` | `50` | Máximo de entradas no painel de debug por canal |
+| `STATUS_DELIVERED_DELAY_MS` | `1000` | Delay para disparar status "delivered" após envio (WPP) |
+| `STATUS_READ_DELAY_MS` | `3000` | Delay para disparar status "read" após envio (WPP) |
 
 ---
 
@@ -289,22 +379,20 @@ Resposta de sucesso: `{"ok": true}`
 
 ### ÉPICO 0 — Decisões de arquitetura (pré-requisito de tudo)
 
-- [ ] `0.1` Definir stack: Python/FastAPI ou Rust/Axum
-- [ ] `0.2` Definir estratégia de persistência de config: apenas memória ou arquivo JSON local (`config.json`)
-- [ ] `0.3` Definir estratégia de deploy público: Docker Hub (`dimmy/mock-rs`) ou GitHub Container Registry (`ghcr.io`)
-- [ ] `0.4` Definir licença do projeto (sugestão: MIT)
+- [ ] `0.1` Definir stack: Python 3.12 / FastAPI ou Rust / Axum
+- [ ] `0.2` Definir persistência de config: apenas memória ou arquivo `config.json` local
+- [ ] `0.3` Definir registro Docker: Docker Hub ou GitHub Container Registry (ghcr.io)
+- [ ] `0.4` Definir licença: MIT ou Apache 2.0
 
 ---
 
 ### ÉPICO 1 — Infraestrutura e setup
 
-- [ ] `1.1` Inicializar repositório git com `.gitignore` adequado à stack escolhida
-- [ ] `1.2` Criar estrutura de pastas do projeto
-- [ ] `1.3` Configurar dependências com versões fixas e lockfile
-- [ ] `1.4` Configurar linting e formatação (`ruff`+`black` / `clippy`+`rustfmt`)
-- [ ] `1.5` Criar `Dockerfile` multi-stage (build + runtime mínimo)
-- [ ] `1.6` Criar `docker-compose.yml` standalone para desenvolvimento
-- [ ] `1.7` Criar `.env.example` com todas as variáveis documentadas
+- [ ] `1.1` Inicializar estrutura de pastas e dependências com lockfile
+- [ ] `1.2` Configurar linting e formatação (`ruff`+`black` / `clippy`+`rustfmt`)
+- [ ] `1.3` `Dockerfile` multi-stage (build + runtime mínimo)
+- [ ] `1.4` `docker-compose.yml` standalone para desenvolvimento
+- [ ] `1.5` `.env.example` com todas as variáveis documentadas
 
 ---
 
@@ -312,164 +400,158 @@ Resposta de sucesso: `{"ok": true}`
 
 - [ ] `2.1` Modelar estado dos dois canais em memória
   - `ChannelConfig`: `webhook_url`, `user_name`, `identifier`, `platform`, `configured: bool`
-  - `ChannelState`: `connected: bool`, `history: List[Message]`
-- [ ] `2.2` Endpoint `GET /health`
-- [ ] `2.3` Endpoint `GET /info` — retorna URLs de callback e status de cada canal
-- [ ] `2.4` Endpoint `GET /config` — retorna configuração atual dos dois canais
-- [ ] `2.5` Endpoint `PATCH /config/{canal}` — atualiza configuração em runtime, valida campos
-- [ ] `2.6` Endpoint `DELETE /history/{canal}` — limpa histórico, notifica WebSocket conectado
-- [ ] `2.7` Endpoint `POST /callback/{canal}` — recebe resposta da aplicação, roteia ao WebSocket
-- [ ] `2.8` WebSocket `/ws/{canal}` — gerencia conexão, reconexão e mensagens bidirecionais
-- [ ] `2.9` Configurar CORS para aceitar qualquer origem (ferramenta de dev, sem restrição)
-- [ ] `2.10` Logging estruturado com nível configurável via `LOG_LEVEL`
+  - `ChannelState`: `ws_connected: bool`, `history: List[Message]`
+- [ ] `2.2` `GET /health`
+- [ ] `2.3` `GET /info` — URLs de callback, verificação e WebSocket por canal
+- [ ] `2.4` `GET /config` — configuração atual dos dois canais
+- [ ] `2.5` `PATCH /config/{canal}` — valida e aplica nova configuração em runtime
+- [ ] `2.6` `DELETE /history/{canal}` — limpa histórico, notifica WebSocket
+- [ ] `2.7` `GET /webhook/{canal}` — fluxo de verificação: valida `hub.verify_token`, responde com `hub.challenge`
+- [ ] `2.8` `POST /callback/{canal}` — recebe resposta da aplicação, roteia ao WebSocket correto
+- [ ] `2.9` `WS /ws/{canal}` — gerencia conexão, desconexão e mensagens bidirecionais
+- [ ] `2.10` Configurar CORS aberto (ferramenta de dev)
+- [ ] `2.11` Logging estruturado com nível configurável via `LOG_LEVEL`
 
 ---
 
-### ÉPICO 3 — Backend: payloads Meta
+### ÉPICO 3 — Backend: payloads Meta fiéis
 
 - [ ] `3.1` Gerador de Message ID
-  - WhatsApp: `wamid.mock_{16 chars hex}`
-  - Instagram: `mid.mock_{16 chars hex}`
-- [ ] `3.2` Builder de payload WhatsApp (formato Meta Webhook oficial, campos conforme seção Contrato de API)
-- [ ] `3.3` Builder de payload Instagram (formato Meta IG Direct, campos conforme seção Contrato de API)
-- [ ] `3.4` Envio assíncrono via HTTP POST para `webhook_url` com timeout de 10s
-- [ ] `3.5` Capturar e estruturar erros de entrega: `ConnectionError`, `TimeoutError`, resposta não-2xx
-- [ ] `3.6` Emitir evento de debug a cada envio: payload completo + status da resposta HTTP
+  - WhatsApp: `wamid.HBgL<uuid4().hex[:16]>`
+  - Instagram: `mid.$<uuid4().hex[:16]>`
+- [ ] `3.2` Builder de payload WhatsApp — texto (todos os campos conforme spec)
+- [ ] `3.3` Builder de payload WhatsApp — status update (`delivered`, `read`)
+- [ ] `3.4` Builder de payload Instagram — texto (estrutura `messaging` conforme spec)
+- [ ] `3.5` Builder de payload Instagram — read receipt (`messaging.read.watermark`)
+- [ ] `3.6` Assinatura `X-Hub-Signature-256`: `sha256=HMAC-SHA256(APP_SECRET, raw_body)`
+- [ ] `3.7` Envio assíncrono via HTTP POST com header de assinatura e timeout de 10s
+- [ ] `3.8` Tratamento de erros: `ConnectionError`, `TimeoutError`, resposta não-2xx
+- [ ] `3.9` Simulação de status updates com delay configurável:
+  - WPP: `delivered` após `STATUS_DELIVERED_DELAY_MS`, `read` após `STATUS_READ_DELAY_MS`
+  - Instagram: `read` (watermark) após `STATUS_READ_DELAY_MS`
+- [ ] `3.10` Emitir entrada de debug a cada envio e a cada erro
 
 ---
 
 ### ÉPICO 4 — Frontend: shell e layout
 
-- [ ] `4.1` HTML/CSS/JS embutido no servidor (sem framework externo, sem bundler — zero dependência de build)
-- [ ] `4.2` Layout responsivo: dois frames de celular lado a lado, centralizados na página
-- [ ] `4.3` Frame de celular estilo iPhone: notch, status bar, bordas arredondadas
-- [ ] `4.4` Cabeçalho de página com nome do projeto e link para repositório GitHub
-- [ ] `4.5` Layout em coluna única em telas menores (mobile/tablet) — os frames empilham
+- [ ] `4.1` HTML/CSS/JS embutido no servidor — zero dependência de build externo
+- [ ] `4.2` Dois frames de celular lado a lado, centralizados na viewport
+- [ ] `4.3` Frame estilo iPhone: notch, status bar, bordas arredondadas
+- [ ] `4.4` Cabeçalho de página com nome do projeto e link para repositório
+- [ ] `4.5` Em telas menores: frames empilham em coluna única
 
 ---
 
 ### ÉPICO 5 — Frontend: chat WhatsApp
 
-- [ ] `5.1` Tema escuro com cor de fundo `#0B141A` e padrão de fundo característico do WPP
-- [ ] `5.2` Barra de topo com avatar, nome do contato e status ("online")
-- [ ] `5.3` Balão de mensagem enviada (direita, cor `#005C4B`, com cauda)
-- [ ] `5.4` Balão de mensagem recebida (esquerda, cor `#202C33`, com cauda)
-- [ ] `5.5` Timestamp em cada balão (`HH:MM`)
-- [ ] `5.6` Check marks duplos (✓✓) nas mensagens enviadas
-- [ ] `5.7` Indicador animado "digitando..." enquanto aguarda resposta
-- [ ] `5.8` Campo de texto na barra inferior com botão de envio
-- [ ] `5.9` Envio com Enter (Shift+Enter para nova linha) e clique no botão
-- [ ] `5.10` Auto-scroll para a última mensagem ao receber ou enviar
+- [ ] `5.1` Tema escuro — fundo `#0B141A`, padrão de fundo característico do WPP
+- [ ] `5.2` Barra de topo: avatar, nome do contato, status "online"
+- [ ] `5.3` Balão enviado (direita, `#005C4B`, com cauda)
+- [ ] `5.4` Balão recebido (esquerda, `#202C33`, com cauda)
+- [ ] `5.5` Timestamp em cada balão
+- [ ] `5.6` Check marks: ✓ enviado · ✓✓ entregue · ✓✓ azul lido (atualiza via evento `status`)
+- [ ] `5.7` Indicador "digitando..." animado enquanto aguarda resposta
+- [ ] `5.8` Campo de texto + botão enviar; Enter envia, Shift+Enter quebra linha
+- [ ] `5.9` Auto-scroll para última mensagem
 
 ---
 
 ### ÉPICO 6 — Frontend: chat Instagram
 
-- [ ] `6.1` Tema claro com fundo branco e bordas cinza suave
-- [ ] `6.2` Barra de topo com avatar circular com gradiente IG, nome do contato e ícone de câmera
-- [ ] `6.3` Balão de mensagem enviada (direita, fundo `#0095F6` — azul Instagram)
-- [ ] `6.4` Balão de mensagem recebida (esquerda, fundo `#EFEFEF`)
-- [ ] `6.5` Balões sem cauda, bordas muito arredondadas (estilo IG)
-- [ ] `6.6` Timestamp ao passar o mouse sobre o balão (tooltip)
-- [ ] `6.7` Indicador animado de "digitando..." (três pontos pulsantes)
-- [ ] `6.8` Campo de texto com botão de envio e ícone de microfone decorativo
-- [ ] `6.9` Auto-scroll para a última mensagem
+- [ ] `6.1` Tema claro — fundo branco, bordas cinza suave
+- [ ] `6.2` Barra de topo: avatar com gradiente IG, nome do contato
+- [ ] `6.3` Balão enviado (direita, `#0095F6`)
+- [ ] `6.4` Balão recebido (esquerda, `#EFEFEF`)
+- [ ] `6.5` Balões sem cauda, bordas muito arredondadas
+- [ ] `6.6` Timestamp como tooltip ao passar o mouse
+- [ ] `6.7` Indicador "digitando..." (três pontos pulsantes)
+- [ ] `6.8` Campo de texto + botão enviar
+- [ ] `6.9` Auto-scroll para última mensagem
 
 ---
 
 ### ÉPICO 7 — Frontend: painel de configuração
 
-- [ ] `7.1` Ícone de engrenagem (⚙) no cabeçalho de cada celular — abre o painel de config
-- [ ] `7.2` Painel colapsável (slide down) com os campos:
-  - **Webhook URL** — URL para onde o mock envia os eventos (`webhook_url`)
-  - **Nome do contato** — nome do remetente simulado (`user_name`)
-  - **Identificador** — número E.164 para WPP ou `@handle` para Instagram (`identifier`)
-- [ ] `7.3` Botão **"Salvar"** — aplica configuração via `PATCH /config/{canal}` e fecha o painel
-- [ ] `7.4` Validação client-side antes de salvar:
-  - `webhook_url`: URL válida e não vazia
-  - `user_name`: não vazio
-  - `identifier`: não vazio; para WPP, apenas dígitos; para IG, começa com `@`
-- [ ] `7.5` Caixa de destaque **"URL de Callback"** (somente leitura) com botão **"Copiar"**
-  - Exibe: `http://localhost:5504/callback/whatsapp` (ou `/instagram`)
-  - Botão muda para "Copiado ✓" por 2s após copiar
-- [ ] `7.6` Indicador de status do webhook (ponto verde/vermelho) ao lado da URL — atualizado ao salvar
-- [ ] `7.7` Persistência das configurações via `localStorage` — restauradas no reload sem chamar a API
-- [ ] `7.8` Botão **"Limpar conversa"** — chama `DELETE /history/{canal}`, limpa UI, mantém config
+- [ ] `7.1` Ícone ⚙ no cabeçalho de cada celular — abre painel colapsável
+- [ ] `7.2` Campos do painel:
+  - **Webhook URL** — onde o mock envia os eventos
+  - **Nome do contato** — remetente simulado
+  - **Identificador** — número E.164 (WPP) ou IGSID (Instagram)
+- [ ] `7.3` Botão "Salvar" — `PATCH /config/{canal}` + fecha painel
+- [ ] `7.4` Validação client-side: URL válida, campos não vazios, formato do identificador
+- [ ] `7.5` Caixa "URL de Callback" (read-only + botão Copiar com feedback "Copiado ✓")
+- [ ] `7.6` Caixa "URL de Verificação" (read-only + botão Copiar) — para registrar no painel Meta
+- [ ] `7.7` Indicador verde/vermelho de status do webhook — atualizado ao salvar
+- [ ] `7.8` Persistência via `localStorage` — restaura configuração no reload
+- [ ] `7.9` Botão "Limpar conversa" — `DELETE /history/{canal}`, limpa UI, mantém config
 
 ---
 
 ### ÉPICO 8 — Frontend: painel de debug
 
-- [ ] `8.1` Card colapsável abaixo de cada celular: "🔍 Debug — WhatsApp / Instagram"
-- [ ] `8.2` Fechado por padrão; estado (aberto/fechado) persistido em `localStorage`
-- [ ] `8.3` Cada entrada do log exibe:
-  - Direção: `→ ENVIADO` (verde) ou `← RECEBIDO` (azul) ou `✕ ERRO` (vermelho)
+- [ ] `8.1` Card colapsável abaixo de cada celular: "🔍 Debug"
+- [ ] `8.2` Fechado por padrão; estado persistido em `localStorage`
+- [ ] `8.3` Cada entrada exibe:
+  - Direção: `→ ENVIADO` (verde) · `← RECEBIDO` (azul) · `⚡ STATUS` (cinza) · `✕ ERRO` (vermelho)
   - Timestamp com hora e milissegundos
-  - Status HTTP (quando aplicável): `200 OK`, `500 Internal Server Error`, etc.
-  - JSON formatado e com syntax highlighting básico (chaves em cor diferente)
-- [ ] `8.4` Botão **"Copiar JSON"** em cada entrada — copia o JSON da entrada para o clipboard
-- [ ] `8.5` Botão **"Limpar log"** no cabeçalho do card — apaga apenas as entradas do debug
-- [ ] `8.6` Limite de `MAX_DEBUG_ENTRIES` entradas (padrão: 50) — entrada mais antiga removida ao atingir o limite
-- [ ] `8.7` Scroll interno no card de debug (não expande a página inteira)
+  - Status HTTP quando aplicável
+  - JSON formatado com syntax highlighting básico
+- [ ] `8.4` Botão "Copiar JSON" por entrada
+- [ ] `8.5` Botão "Limpar log" — apaga só as entradas de debug
+- [ ] `8.6` Limite de `MAX_DEBUG_ENTRIES` entradas; remove a mais antiga ao atingir o limite
+- [ ] `8.7` Scroll interno no card — não expande a página
 
 ---
 
-### ÉPICO 9 — WebSocket: resiliência e reconexão
+### ÉPICO 9 — WebSocket: resiliência
 
-- [ ] `9.1` Reconexão automática em caso de queda: retry com backoff (1s → 2s → 4s, máx. 30s)
-- [ ] `9.2` Indicador visual de conexão WebSocket em cada celular (ponto animado: verde=conectado, cinza=reconectando)
-- [ ] `9.3` Fila de mensagens pendentes durante reconexão — reenviar ao reconectar (ou notificar falha)
-- [ ] `9.4` Timeout no WebSocket do servidor: fechar conexão inativa após 5 minutos
+- [ ] `9.1` Reconexão automática com backoff exponencial: 1s → 2s → 4s → 8s (máx. 30s)
+- [ ] `9.2` Indicador visual de conexão por celular: ponto verde (conectado) / cinza pulsante (reconectando)
+- [ ] `9.3` Ping/pong keepalive a cada 30s para manter conexão viva em proxies
+- [ ] `9.4` Timeout no servidor: fechar conexão inativa após 5 min
 
 ---
 
 ### ÉPICO 10 — Qualidade e testes
 
-- [ ] `10.1` Testes unitários: builder de payload WhatsApp
-  - Verificar todos os campos obrigatórios
-  - Verificar formato do `wamid` gerado
-  - Verificar que o `identifier` do config aparece como `from` e `wa_id`
-- [ ] `10.2` Testes unitários: builder de payload Instagram
-  - Verificar todos os campos obrigatórios
-  - Verificar formato do `mid` gerado
-- [ ] `10.3` Testes de integração: `GET /health`, `GET /info`, `GET /config`
-- [ ] `10.4` Testes de integração: `PATCH /config/{canal}` — sucesso, campos inválidos, canal inválido
-- [ ] `10.5` Testes de integração: `DELETE /history/{canal}`
-- [ ] `10.6` Testes de integração: `POST /callback/{canal}` — sucesso, payload malformado, canal inválido
-- [ ] `10.7` Testes de integração: envio ao webhook — simular webhook respondendo 200, 500 e timeout
-- [ ] `10.8` Cobertura mínima: 80%
+- [ ] `10.1` Testes unitários: gerador de Message ID (formato wamid e mid)
+- [ ] `10.2` Testes unitários: builder payload WPP texto — todos os campos obrigatórios
+- [ ] `10.3` Testes unitários: builder payload WPP status update
+- [ ] `10.4` Testes unitários: builder payload Instagram texto — estrutura `messaging`
+- [ ] `10.5` Testes unitários: builder payload Instagram read receipt
+- [ ] `10.6` Testes unitários: geração de `X-Hub-Signature-256`
+- [ ] `10.7` Testes unitários: fluxo de verificação `GET /webhook/{canal}`
+  - Token correto → 200 + challenge
+  - Token errado → 403
+  - `hub.mode` diferente de `subscribe` → 403
+- [ ] `10.8` Testes de integração: `PATCH /config/{canal}` — sucesso, campos inválidos, canal inválido
+- [ ] `10.9` Testes de integração: `DELETE /history/{canal}`
+- [ ] `10.10` Testes de integração: `POST /callback/{canal}` — sucesso, payload malformado, canal inválido
+- [ ] `10.11` Testes de integração: envio ao webhook — simular 200, 500 e timeout
+- [ ] `10.12` Cobertura mínima: 80%
 
 ---
 
 ### ÉPICO 11 — CI/CD e publicação
 
-- [ ] `11.1` GitHub Actions: workflow `test.yml` — executar testes em todo push e pull request
-- [ ] `11.2` GitHub Actions: workflow `lint.yml` — linting e formatação em todo push e pull request
-- [ ] `11.3` GitHub Actions: workflow `docker-publish.yml` — publicar imagem ao criar tag `v*.*.*`
+- [ ] `11.1` GitHub Actions `test.yml` — testes em todo push e PR
+- [ ] `11.2` GitHub Actions `lint.yml` — linting e formatação em todo push e PR
+- [ ] `11.3` GitHub Actions `docker-publish.yml` — publicar imagem ao criar tag `v*.*.*`
   - Build multi-platform: `linux/amd64` e `linux/arm64`
-  - Push para Docker Hub: `docker.io/{usuario}/mock-rs:latest` e `:{versao}`
-- [ ] `11.4` Badges no README: CI status · Docker pulls · Docker image size · License
-- [ ] `11.5` Versionamento SemVer: `MAJOR.MINOR.PATCH` — documentado no CONTRIBUTING.md
-- [ ] `11.6` `CHANGELOG.md` com formato Keep a Changelog
+  - Push para registro escolhido em D3
+- [ ] `11.4` Badges no README: CI · Docker pulls · image size · license
+- [ ] `11.5` `CHANGELOG.md` com formato Keep a Changelog
 
 ---
 
 ### ÉPICO 12 — Documentação pública
 
-- [ ] `12.1` `README.md` com seções:
-  - O que é e para que serve
-  - Quickstart com uma linha: `docker run -p 5504:5504 {usuario}/mock-rs`
-  - Screenshot da interface
-  - Como configurar cada canal (webhook URL, contato, identificador)
-  - Como obter a callback URL e configurar na sua aplicação
-  - Exemplos de payload enviado (WPP e IG)
-  - Formato esperado do callback
-  - Todas as variáveis de ambiente com valores padrão
-  - docker-compose de exemplo para integrar com outra aplicação
-- [ ] `12.2` `CONTRIBUTING.md` — como rodar localmente, como abrir PR, convenção de commits
-- [ ] `12.3` `LICENSE` — arquivo de licença (MIT)
-- [ ] `12.4` `.github/ISSUE_TEMPLATE/` — templates para bug report e feature request
-- [ ] `12.5` `docker-compose.example.yml` — exemplo completo de uso com aplicação consumidora
+- [ ] `12.1` `README.md` completo (ver seção separada no repositório)
+- [ ] `12.2` `CONTRIBUTING.md` — como rodar localmente, abrir PR, convenção de commits
+- [ ] `12.3` `LICENSE`
+- [ ] `12.4` `.github/ISSUE_TEMPLATE/` — bug report e feature request
+- [ ] `12.5` `docker-compose.example.yml` — exemplo de uso com aplicação consumidora
 
 ---
 
@@ -483,14 +565,14 @@ Resposta de sucesso: `{"ok": true}`
                             └─► ÉPICO 4 (frontend shell)
                                     ├─► ÉPICO 5 (chat WPP)
                                     ├─► ÉPICO 6 (chat IG)
-                                    ├─► ÉPICO 7 (config)
+                                    ├─► ÉPICO 7 (config)     ──► ÉPICO 10 (testes 7.x)
                                     ├─► ÉPICO 8 (debug)
-                                    └─► ÉPICO 9 (WebSocket resiliência)
+                                    └─► ÉPICO 9 (WS resiliência)
                                                 └─► ÉPICO 11 (CI/CD)
                                                         └─► ÉPICO 12 (docs)
 ```
 
-Dentro de cada épico: **Red → Green → Refactor**. Escreva o teste antes do código de produção.
+Dentro de cada épico: **Red → Green → Refactor** — escreva o teste antes do código de produção.
 
 ---
 
@@ -498,9 +580,9 @@ Dentro de cada épico: **Red → Green → Refactor**. Escreva o teste antes do 
 
 | # | Decisão | Opções | Impacto |
 |---|---------|--------|---------|
-| D1 | Stack tecnológica | Python 3.12 / FastAPI · Rust / Axum | Define épicos 1, 7, 10 inteiros |
-| D2 | Persistência de config | Apenas memória (reset no restart) · `config.json` local | Define `2.1` e UX do `7.7` |
-| D3 | Registro Docker | Docker Hub · GitHub Container Registry (ghcr.io) | Define `11.3` |
+| D1 | Stack | Python 3.12 / FastAPI · Rust / Axum | Define épicos 1, 10 inteiros |
+| D2 | Persistência de config | Apenas memória · `config.json` local | Define `2.1` e UX do `7.8` |
+| D3 | Registro Docker | Docker Hub · GitHub Container Registry | Define `11.3` |
 | D4 | Licença | MIT · Apache 2.0 | Define `12.3` |
 
 ---
@@ -509,7 +591,8 @@ Dentro de cada épico: **Red → Green → Refactor**. Escreva o teste antes do 
 
 | # | Risco | Mitigação |
 |---|-------|-----------|
-| R1 | Formato do payload Meta muda sem aviso | Isolar builders em módulo separado; versionar os formatos |
-| R2 | Aplicação consumidora não suporta CORS | CORS aberto por padrão em dev; documentar claramente |
-| R3 | URL de callback inacessível (NAT, Docker network) | `MOCK_BASE_URL` configurável; documentar uso com ngrok/tunnel |
-| R4 | WebSocket cai em proxies com timeout agressivo | Ping/pong keepalive a cada 30s |
+| R1 | Formato do payload Meta muda sem aviso | Builders isolados em módulo próprio; versionar os formatos no README |
+| R2 | Aplicação não aceita requests sem CORS | CORS aberto por padrão; documentar claramente |
+| R3 | Callback URL inacessível por NAT ou Docker network | `MOCK_BASE_URL` configurável; documentar uso com ngrok |
+| R4 | WebSocket cai em proxies com timeout agressivo | Ping/pong keepalive a cada 30s (Épico 9.3) |
+| R5 | Aplicação rejeita payload por `X-Hub-Signature-256` inválida | `APP_SECRET` configurável; documentar como alinhar com a app |
