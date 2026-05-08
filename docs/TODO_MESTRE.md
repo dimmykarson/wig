@@ -414,65 +414,59 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 
 ### ÉPICO 0 — Decisões de arquitetura (pré-requisito de tudo)
 
-- [ ] `0.1` Definir stack: Python 3.12 / FastAPI ou Rust / Axum
-- [ ] `0.2` Definir persistência de config: apenas memória ou arquivo `config.json` local
-- [ ] `0.3` Definir registro Docker: Docker Hub ou GitHub Container Registry (ghcr.io)
-- [ ] `0.4` Definir licença: MIT ou Apache 2.0
-- [ ] `0.5` Definir escopo de tipos de mensagem para v1 (confirmado: somente texto) e roadmap de v2 (mídia, localização, interativas, reações)
+- [x] `0.1` Definir stack: **Python 3.12 / FastAPI** ✓
+- [x] `0.2` Definir persistência de config: **`config.json` local** ✓
+- [x] `0.3` Definir registro Docker: **Docker Hub** ✓
+- [x] `0.4` Definir licença: **MIT** ✓
+- [x] `0.5` Definir escopo de tipos de mensagem: **v1 = somente texto**; v2 = mídia + caption, localização, interativas, reações ✓
+  - Quando a UI enviar mídia futuramente, o payload deve incluir campo `caption` opcional junto ao objeto de mídia
 
 ---
 
 ### ÉPICO 1 — Infraestrutura e setup
 
-- [ ] `1.1` Inicializar estrutura de pastas e dependências com lockfile
-- [ ] `1.2` Configurar linting e formatação (`ruff`+`black` / `clippy`+`rustfmt`)
-- [ ] `1.3` `Dockerfile` multi-stage (build + runtime mínimo)
-- [ ] `1.4` `docker-compose.yml` standalone para desenvolvimento
-- [ ] `1.5` `.env.example` com todas as variáveis documentadas
+- [x] `1.1` Inicializar estrutura de pastas e dependências com lockfile
+- [x] `1.2` Configurar linting e formatação (`ruff` + `black`)
+- [x] `1.3` `Dockerfile` multi-stage (build + runtime mínimo)
+- [x] `1.4` `docker-compose.yml` standalone para desenvolvimento
+- [x] `1.5` `.env.example` com todas as variáveis documentadas
 
 ---
 
 ### ÉPICO 2 — Backend: núcleo da aplicação
 
-- [ ] `2.1` Modelar estado dos dois canais em memória
+- [x] `2.1` Modelar estado dos dois canais em memória
   - `ChannelConfig`: `webhook_url`, `user_name`, `identifier`, `platform`, `configured: bool`
     - WPP: inclui `waba_id` e `phone_number_id` (gerados como mock fixo, mas configuráveis)
     - Instagram: inclui `ig_account_id` e `ig_page_id` (gerados como mock fixo, mas configuráveis)
   - `ChannelState`: `ws_connected: bool`, `history: List[Message]`
-- [ ] `2.2` `GET /health`
-- [ ] `2.3` `GET /info` — URLs de callback, verificação e WebSocket por canal
-- [ ] `2.4` `GET /config` — configuração atual dos dois canais
-- [ ] `2.5` `PATCH /config/{canal}` — valida e aplica nova configuração em runtime
-- [ ] `2.6` `DELETE /history/{canal}` — limpa histórico, notifica WebSocket
-- [ ] `2.7` `GET /webhook/{canal}` — fluxo de verificação: valida `hub.verify_token`, responde com `hub.challenge`
-- [ ] `2.8` `POST /callback/{canal}` — recebe resposta da aplicação, roteia ao WebSocket correto
-- [ ] `2.9` `WS /ws/{canal}` — gerencia conexão, desconexão e mensagens bidirecionais
-- [ ] `2.10` Configurar CORS aberto (ferramenta de dev)
-- [ ] `2.11` Logging estruturado com nível configurável via `LOG_LEVEL`
+- [x] `2.2` `GET /health`
+- [x] `2.3` `GET /info` — URLs de callback, verificação e WebSocket por canal
+- [x] `2.4` `GET /config` — configuração atual dos dois canais
+- [x] `2.5` `PATCH /config/{canal}` — valida e aplica nova configuração em runtime
+- [x] `2.6` `DELETE /history/{canal}` — limpa histórico, notifica WebSocket
+- [x] `2.7` `GET /webhook/{canal}` — fluxo de verificação: valida `hub.verify_token`, responde com `hub.challenge`
+- [x] `2.8` `POST /callback/{canal}` — recebe resposta da aplicação, roteia ao WebSocket correto
+- [x] `2.9` `WS /ws/{canal}` — gerencia conexão, desconexão e mensagens bidirecionais
+- [x] `2.10` Configurar CORS aberto (ferramenta de dev)
+- [x] `2.11` Logging estruturado com nível configurável via `LOG_LEVEL`
 
 ---
 
 ### ÉPICO 3 — Backend: payloads Meta fiéis
 
-- [ ] `3.1` Gerador de Message ID
-  - WhatsApp: `wamid.HBgL<uuid4().hex[:16]>`
-  - Instagram: `mid.$<uuid4().hex[:16]>`
-- [ ] `3.2` Builder de payload WhatsApp — texto (todos os campos conforme spec)
-  - Campo `context` opcional: `{"from": "<wa_id>", "id": "<wamid>"}` para replies
-- [ ] `3.3` Builder de payload WhatsApp — status update (`delivered`, `read`)
-  - `field` deve ser `"messages"` (não `"message_status"`) — conforme spec oficial
-  - Incluir campos `conversation` e `pricing` no objeto de status
-- [ ] `3.4` Builder de payload Instagram — texto (estrutura `messaging` conforme spec)
-- [ ] `3.5` Builder de payload Instagram — delivery receipt (`messaging.delivery.mids` + `watermark`)
-- [ ] `3.6` Builder de payload Instagram — read receipt (`messaging.read.watermark`)
-- [ ] `3.7` Assinatura `X-Hub-Signature-256`: `sha256=HMAC-SHA256(APP_SECRET, raw_body)`
-- [ ] `3.8` Envio assíncrono via HTTP POST com header de assinatura e timeout de 10s
-- [ ] `3.9` Tratamento de erros: `ConnectionError`, `TimeoutError`, resposta não-2xx
-- [ ] `3.10` Simulação de status/receipts com delay configurável:
-  - WPP: `delivered` após `STATUS_DELIVERED_DELAY_MS`, `read` após `STATUS_READ_DELAY_MS`
-  - Instagram: `delivery` após `STATUS_DELIVERED_DELAY_MS`, `read` após `STATUS_READ_DELAY_MS`
-- [ ] `3.11` Emitir entrada de debug a cada envio, status e erro
-- [ ] `3.12` Responder ao callback com `200 OK` imediatamente antes de processar (evitar timeout da app)
+- [x] `3.1` Gerador de Message ID (`wamid.HBgL<hex16>` e `mid.$mock<hex16>`)
+- [x] `3.2` Builder de payload WhatsApp — texto (todos os campos conforme spec)
+- [x] `3.3` Builder de payload WhatsApp — status update com `field: "messages"`, `conversation` e `pricing`
+- [x] `3.4` Builder de payload Instagram — texto (estrutura `messaging` conforme spec)
+- [x] `3.5` Builder de payload Instagram — delivery receipt (`delivery.mids` + `watermark`)
+- [x] `3.6` Builder de payload Instagram — read receipt (`read.watermark`)
+- [x] `3.7` Assinatura `X-Hub-Signature-256` via HMAC-SHA256
+- [x] `3.8` Envio assíncrono via HTTP POST com header de assinatura e timeout de 10s
+- [x] `3.9` Tratamento de erros: `ConnectionError`, `TimeoutError`, resposta não-2xx
+- [x] `3.10` Simulação de status/receipts com delay configurável (WPP e Instagram)
+- [x] `3.11` Entradas de debug a cada envio, status e erro
+- [x] `3.12` Callback responde 200 imediatamente antes de processar
 
 ---
 
@@ -629,9 +623,9 @@ Dentro de cada épico: **Red → Green → Refactor** — escreva o teste antes 
 | # | Decisão | Opções | Impacto |
 |---|---------|--------|---------|
 | D1 | Stack | Python 3.12 / FastAPI · Rust / Axum | Define épicos 1, 10 inteiros |
-| D2 | Persistência de config | Apenas memória · `config.json` local | Define `2.1` e UX do `7.10` |
-| D3 | Registro Docker | Docker Hub · GitHub Container Registry | Define `11.3` |
-| D4 | Licença | MIT · Apache 2.0 | Define `12.3` |
+| D2 | Persistência de config | **`config.json` local** ✓ | Define `2.1` e UX do `7.10` |
+| D3 | Registro Docker | **Docker Hub** ✓ | Define `11.3` |
+| D4 | Licença | **MIT** ✓ | Define `12.3` |
 | D5 | Tipos de mensagem v1 | Somente texto *(confirmado)* · incluir imagem | Define `3.2`, `3.4`, Épicos 5 e 6 |
 
 ---

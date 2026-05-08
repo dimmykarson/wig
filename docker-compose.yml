@@ -1,0 +1,14 @@
+services:
+  wig:
+    build: .
+    ports:
+      - "${PORT:-5504}:5504"
+    environment:
+      MOCK_BASE_URL: ${MOCK_BASE_URL:-http://localhost:5504}
+      APP_SECRET: ${APP_SECRET:-mock-secret}
+      VERIFY_TOKEN: ${VERIFY_TOKEN:-mock-verify-token}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
