@@ -1,5 +1,7 @@
 import time
+
 from fastapi import APIRouter, HTTPException
+
 from src.models import CallbackPayload, DebugEntry, Platform
 from src.state import app_state
 

@@ -94,8 +94,10 @@ async def websocket_endpoint(websocket: WebSocket, canal: str):
                     websocket.receive_json(),
                     timeout=settings.ws_inactivity_timeout_s,
                 )
-            except asyncio.TimeoutError:
-                log.info("WS inativo por %ss — fechando: %s", settings.ws_inactivity_timeout_s, canal)
+            except TimeoutError:
+                log.info(
+                    "WS inativo por %ss — fechando: %s", settings.ws_inactivity_timeout_s, canal
+                )
                 await websocket.close(code=1001)
                 ch.websocket = None
                 return
@@ -259,7 +261,9 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
     else:
         delivered_payload = build_delivery_receipt(cfg, [msg_id], watermark)
 
-    await _push_debug(ch, DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=delivered_payload))
+    ts = int(time.time() * 1000)
+    entry = DebugEntry(direction="status", timestamp_ms=ts, payload=delivered_payload)
+    await _push_debug(ch, entry)
     if ch.websocket:
         await ch.websocket.send_json({"type": "status", "status": "delivered"})
 
@@ -271,7 +275,9 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
     else:
         read_payload = build_read_receipt(cfg, watermark)
 
-    await _push_debug(ch, DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=read_payload))
+    ts = int(time.time() * 1000)
+    entry = DebugEntry(direction="status", timestamp_ms=ts, payload=read_payload)
+    await _push_debug(ch, entry)
     if ch.websocket:
         await ch.websocket.send_json({"type": "status", "status": "read"})
 

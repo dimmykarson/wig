@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import Literal
-from pydantic import BaseModel, HttpUrl
+
+from pydantic import BaseModel
 
 
 class Platform(StrEnum):

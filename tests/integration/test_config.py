@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from src.main import app
-from src.state import app_state
 from src.models import Platform
+from src.state import app_state
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +43,9 @@ async def test_patch_config_updates_state(client):
 
 
 async def test_patch_config_invalid_channel_returns_404(client):
-    r = await client.patch("/config/telegram", json={"webhook_url": "x", "user_name": "x", "identifier": "x"})
+    r = await client.patch(
+        "/config/telegram", json={"webhook_url": "x", "user_name": "x", "identifier": "x"}
+    )
     assert r.status_code == 404
 
 

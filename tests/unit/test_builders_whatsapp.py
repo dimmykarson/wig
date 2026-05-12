@@ -1,5 +1,6 @@
 import pytest
-from src.builders.whatsapp import build_text_payload, build_status_payload
+
+from src.builders.whatsapp import build_status_payload, build_text_payload
 from src.models import ChannelConfig
 
 
@@ -13,6 +14,14 @@ def config():
         waba_id="WABA123",
         phone_number_id="PHONE456",
     )
+
+
+def _value(payload):
+    return payload["entry"][0]["changes"][0]["value"]
+
+
+def _message(payload):
+    return _value(payload)["messages"][0]
 
 
 class TestBuildTextPayload:
@@ -29,35 +38,35 @@ class TestBuildTextPayload:
         assert p["entry"][0]["changes"][0]["field"] == "messages"
 
     def test_messaging_product(self, config):
-        value = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]
+        value = _value(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         assert value["messaging_product"] == "whatsapp"
 
     def test_metadata_fields(self, config):
-        value = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]
+        value = _value(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         assert value["metadata"]["display_phone_number"] == "5586999990000"
         assert value["metadata"]["phone_number_id"] == "PHONE456"
 
     def test_contact_name_and_wa_id(self, config):
-        value = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]
+        value = _value(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         contact = value["contacts"][0]
         assert contact["profile"]["name"] == "João Silva"
         assert contact["wa_id"] == "5586999990000"
 
     def test_message_from_and_id(self, config):
-        msg = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]["messages"][0]
+        msg = _message(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         assert msg["from"] == "5586999990000"
         assert msg["id"] == "wamid.HBgLabc123"
 
     def test_message_type_is_text(self, config):
-        msg = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]["messages"][0]
+        msg = _message(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         assert msg["type"] == "text"
 
     def test_message_body(self, config):
-        msg = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]["messages"][0]
+        msg = _message(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         assert msg["text"]["body"] == "olá"
 
     def test_timestamp_is_string(self, config):
-        msg = build_text_payload(config, "olá", "wamid.HBgLabc123")["entry"][0]["changes"][0]["value"]["messages"][0]
+        msg = _message(build_text_payload(config, "olá", "wamid.HBgLabc123"))
         assert isinstance(msg["timestamp"], str)
         assert msg["timestamp"].isdigit()
 
@@ -68,26 +77,26 @@ class TestBuildStatusPayload:
         assert p["entry"][0]["changes"][0]["field"] == "messages"
 
     def test_has_statuses_not_messages(self, config):
-        value = build_status_payload(config, "wamid.HBgLabc123", "delivered")["entry"][0]["changes"][0]["value"]
+        value = _value(build_status_payload(config, "wamid.HBgLabc123", "delivered"))
         assert "statuses" in value
         assert "messages" not in value
 
     def test_status_value(self, config):
-        value = build_status_payload(config, "wamid.HBgLabc123", "read")["entry"][0]["changes"][0]["value"]
+        value = _value(build_status_payload(config, "wamid.HBgLabc123", "read"))
         assert value["statuses"][0]["status"] == "read"
 
     def test_status_id_matches_wamid(self, config):
-        value = build_status_payload(config, "wamid.HBgLabc123", "delivered")["entry"][0]["changes"][0]["value"]
+        value = _value(build_status_payload(config, "wamid.HBgLabc123", "delivered"))
         assert value["statuses"][0]["id"] == "wamid.HBgLabc123"
 
     def test_has_conversation_field(self, config):
-        value = build_status_payload(config, "wamid.HBgLabc123", "delivered")["entry"][0]["changes"][0]["value"]
+        value = _value(build_status_payload(config, "wamid.HBgLabc123", "delivered"))
         assert "conversation" in value["statuses"][0]
 
     def test_has_pricing_field(self, config):
-        value = build_status_payload(config, "wamid.HBgLabc123", "delivered")["entry"][0]["changes"][0]["value"]
+        value = _value(build_status_payload(config, "wamid.HBgLabc123", "delivered"))
         assert "pricing" in value["statuses"][0]
 
     def test_recipient_id(self, config):
-        value = build_status_payload(config, "wamid.HBgLabc123", "delivered")["entry"][0]["changes"][0]["value"]
+        value = _value(build_status_payload(config, "wamid.HBgLabc123", "delivered"))
         assert value["statuses"][0]["recipient_id"] == "5586999990000"

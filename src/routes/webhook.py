@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+
 from src.models import Platform
 from src.settings import settings
 

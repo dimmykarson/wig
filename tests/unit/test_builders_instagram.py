@@ -1,5 +1,10 @@
 import pytest
-from src.builders.instagram import build_text_payload, build_delivery_receipt, build_read_receipt
+
+from src.builders.instagram import (
+    build_delivery_receipt,
+    build_read_receipt,
+    build_text_payload,
+)
 from src.models import ChannelConfig
 
 
@@ -13,6 +18,10 @@ def config():
         ig_account_id="IG_ACCOUNT_001",
         ig_page_id="IG_PAGE_001",
     )
+
+
+def _messaging(payload):
+    return payload["entry"][0]["messaging"][0]
 
 
 class TestBuildTextPayload:
@@ -30,30 +39,30 @@ class TestBuildTextPayload:
         assert "changes" not in entry
 
     def test_sender_id_is_identifier(self, config):
-        messaging = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]["messaging"][0]
-        assert messaging["sender"]["id"] == "123456789"
+        m = _messaging(build_text_payload(config, "oi", "mid.$mock1234"))
+        assert m["sender"]["id"] == "123456789"
 
     def test_recipient_id_is_ig_account(self, config):
-        messaging = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]["messaging"][0]
-        assert messaging["recipient"]["id"] == "IG_ACCOUNT_001"
+        m = _messaging(build_text_payload(config, "oi", "mid.$mock1234"))
+        assert m["recipient"]["id"] == "IG_ACCOUNT_001"
 
     def test_message_mid(self, config):
-        messaging = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]["messaging"][0]
-        assert messaging["message"]["mid"] == "mid.$mock1234"
+        m = _messaging(build_text_payload(config, "oi", "mid.$mock1234"))
+        assert m["message"]["mid"] == "mid.$mock1234"
 
     def test_message_text(self, config):
-        messaging = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]["messaging"][0]
-        assert messaging["message"]["text"] == "oi"
+        m = _messaging(build_text_payload(config, "oi", "mid.$mock1234"))
+        assert m["message"]["text"] == "oi"
 
     def test_message_flags(self, config):
-        msg = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]["messaging"][0]["message"]
+        msg = _messaging(build_text_payload(config, "oi", "mid.$mock1234"))["message"]
         assert msg["is_deleted"] is False
         assert msg["is_echo"] is False
         assert msg["is_unsupported"] is False
 
     def test_timestamp_is_int(self, config):
-        messaging = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]["messaging"][0]
-        assert isinstance(messaging["timestamp"], int)
+        m = _messaging(build_text_payload(config, "oi", "mid.$mock1234"))
+        assert isinstance(m["timestamp"], int)
 
     def test_entry_time_is_int(self, config):
         entry = build_text_payload(config, "oi", "mid.$mock1234")["entry"][0]
@@ -66,27 +75,27 @@ class TestBuildDeliveryReceipt:
         assert p["object"] == "instagram"
 
     def test_has_delivery_key(self, config):
-        messaging = build_delivery_receipt(config, ["mid.$mock1234"], 1746700000)["entry"][0]["messaging"][0]
-        assert "delivery" in messaging
+        m = _messaging(build_delivery_receipt(config, ["mid.$mock1234"], 1746700000))
+        assert "delivery" in m
 
     def test_delivery_mids(self, config):
-        messaging = build_delivery_receipt(config, ["mid.$mock1234"], 1746700000)["entry"][0]["messaging"][0]
-        assert messaging["delivery"]["mids"] == ["mid.$mock1234"]
+        m = _messaging(build_delivery_receipt(config, ["mid.$mock1234"], 1746700000))
+        assert m["delivery"]["mids"] == ["mid.$mock1234"]
 
     def test_delivery_watermark(self, config):
-        messaging = build_delivery_receipt(config, ["mid.$mock1234"], 1746700000)["entry"][0]["messaging"][0]
-        assert messaging["delivery"]["watermark"] == 1746700000
+        m = _messaging(build_delivery_receipt(config, ["mid.$mock1234"], 1746700000))
+        assert m["delivery"]["watermark"] == 1746700000
 
 
 class TestBuildReadReceipt:
     def test_has_read_key(self, config):
-        messaging = build_read_receipt(config, 1746700000)["entry"][0]["messaging"][0]
-        assert "read" in messaging
+        m = _messaging(build_read_receipt(config, 1746700000))
+        assert "read" in m
 
     def test_read_watermark(self, config):
-        messaging = build_read_receipt(config, 1746700000)["entry"][0]["messaging"][0]
-        assert messaging["read"]["watermark"] == 1746700000
+        m = _messaging(build_read_receipt(config, 1746700000))
+        assert m["read"]["watermark"] == 1746700000
 
     def test_no_message_key(self, config):
-        messaging = build_read_receipt(config, 1746700000)["entry"][0]["messaging"][0]
-        assert "message" not in messaging
+        m = _messaging(build_read_receipt(config, 1746700000))
+        assert "message" not in m

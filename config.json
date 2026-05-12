@@ -2,11 +2,13 @@
   "whatsapp": {
     "webhook_url": "http://app/wpp/",
     "user_name": "Jo\u00e3o",
-    "identifier": "5586999990000"
+    "identifier": "5586999990000",
+    "phone_number_id": "MOCK_PHONE_NUMBER_ID"
   },
   "instagram": {
     "webhook_url": "http://app/ig/",
     "user_name": "Maria",
-    "identifier": "123456789"
+    "identifier": "123456789",
+    "phone_number_id": "MOCK_PHONE_NUMBER_ID"
   }
 }

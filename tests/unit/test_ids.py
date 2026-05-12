@@ -1,6 +1,6 @@
 import re
-import pytest
-from src.builders.ids import generate_wamid, generate_mid
+
+from src.builders.ids import generate_mid, generate_wamid
 
 
 def test_wamid_starts_with_prefix():

@@ -1,4 +1,5 @@
 from collections import deque
+
 from fastapi import WebSocket
 
 from src.models import ChannelConfig, DebugEntry, Platform

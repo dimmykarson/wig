@@ -1,8 +1,7 @@
-import hmac
 import hashlib
-import pytest
-from src.builders.signature import compute_signature, verify_signature
+import hmac
 
+from src.builders.signature import compute_signature, verify_signature
 
 SECRET = "test-secret"
 BODY = b'{"object":"whatsapp_business_account"}'

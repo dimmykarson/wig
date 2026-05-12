@@ -1,7 +1,8 @@
 from fastapi import APIRouter
+
+from src.models import Platform
 from src.settings import settings
 from src.state import app_state
-from src.models import Platform
 
 router = APIRouter()
 

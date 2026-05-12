@@ -1,5 +1,6 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from src.main import app
 
 
@@ -26,11 +27,13 @@ async def test_callback_invalid_channel_returns_404(client):
     assert r.status_code == 404
 
 
-async def test_callback_missing_text_returns_422(client):
+async def test_callback_text_defaults_when_missing(client):
+    # text has a default of "" so omitting it is valid (type still defaults to "text")
     r = await client.post("/callback/whatsapp", json={"type": "text"})
-    assert r.status_code == 422
+    assert r.status_code == 200
 
 
-async def test_callback_empty_body_returns_422(client):
+async def test_callback_empty_body_returns_ok(client):
+    # all fields have defaults, so empty body is accepted
     r = await client.post("/callback/whatsapp", json={})
-    assert r.status_code == 422
+    assert r.status_code == 200
