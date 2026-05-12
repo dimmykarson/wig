@@ -447,13 +447,22 @@ body {
 .webhook-status.ok  { background: #25D366; }
 .webhook-status.err { background: #e53e3e; }
 
+.save-row { display: flex; gap: 8px; }
 .save-btn {
+  flex: 1;
   background: #005C4B; color: #fff;
   border: none; border-radius: 8px;
   padding: 8px; font-size: .82rem; font-weight: 600;
   cursor: pointer; transition: background .15s;
 }
 .save-btn:hover { background: #017a60; }
+.restore-btn {
+  background: transparent; color: #8696A0;
+  border: 1px solid #3a3a3a; border-radius: 8px;
+  padding: 8px 10px; font-size: .78rem;
+  cursor: pointer; transition: color .15s, border-color .15s; white-space: nowrap;
+}
+.restore-btn:hover { color: #fff; border-color: #666; }
 
 .clear-btn {
   background: transparent; color: #e53e3e;
@@ -735,7 +744,10 @@ body {
           </div>
           <button class="copy-btn" onclick="copyText('wpp-app-secret',this)">Copiar</button>
         </div>
-        <button class="save-btn" onclick="saveConfig('whatsapp')">Salvar</button>
+        <div class="save-row">
+          <button class="restore-btn" id="wpp-restore-btn" onclick="restoreFormFromStorage('whatsapp')" style="display:none">↩ Restaurar</button>
+          <button class="save-btn" onclick="saveConfig('whatsapp')">Salvar</button>
+        </div>
       </div>
     </div>
 
@@ -863,7 +875,10 @@ body {
           </div>
           <button class="copy-btn" onclick="copyText('ig-app-secret',this)">Copiar</button>
         </div>
-        <button class="save-btn" onclick="saveConfig('instagram')">Salvar</button>
+        <div class="save-row">
+          <button class="restore-btn" id="ig-restore-btn" onclick="restoreFormFromStorage('instagram')" style="display:none">↩ Restaurar</button>
+          <button class="save-btn" onclick="saveConfig('instagram')">Salvar</button>
+        </div>
       </div>
     </div>
 
@@ -1014,6 +1029,9 @@ async function boot() {
       }
     }
   }
+
+  // Pre-fill form fields from localStorage (includes unconfigured channels)
+  for (const ch of ['whatsapp', 'instagram']) _fillFormFromStorage(ch);
 
   restoreDebugState();
   connectWS('whatsapp');
@@ -1289,9 +1307,8 @@ async function saveConfig(ch) {
   setSendEnabled(ch, true);
   togglePanel(`cfg-${ch}`);
 
-  // persist in localStorage as well
   const saved = JSON.parse(localStorage.getItem('wig-config') || '{}');
-  saved[ch] = { webhook_url: webhookUrl, user_name: userName, identifier };
+  saved[ch] = { webhook_url: webhookUrl, user_name: userName, identifier, phone_number_id: phoneNumberId };
   localStorage.setItem('wig-config', JSON.stringify(saved));
 }
 
@@ -1323,6 +1340,26 @@ function restoreDebugState() {
   for (const [ch, open] of Object.entries(state)) {
     if (open) togglePanel(`dbg-${ch}`);
   }
+}
+
+function _fillFormFromStorage(ch) {
+  const saved = JSON.parse(localStorage.getItem('wig-config') || '{}');
+  const data = saved[ch];
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  const btn = document.getElementById(`${pre}-restore-btn`);
+  if (!data || !data.webhook_url) { if (btn) btn.style.display = 'none'; return; }
+  setInput(`${pre}-webhook-url`, data.webhook_url || '');
+  setInput(`${pre}-user-name`,   data.user_name   || '');
+  setInput(`${pre}-identifier`,  data.identifier  || '');
+  if (ch === 'whatsapp') setInput('wpp-phone-number-id', data.phone_number_id || '');
+  if (btn) btn.style.display = '';
+}
+
+function restoreFormFromStorage(ch) {
+  _fillFormFromStorage(ch);
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  const body = document.getElementById(`cfg-${ch}-body`);
+  if (!body.classList.contains('open')) togglePanel(`cfg-${ch}`);
 }
 
 function setDot(ch, status) {
