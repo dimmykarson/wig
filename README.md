@@ -12,11 +12,11 @@
 
 ## O que é
 
-**wig** simula dois celulares em uma página web — um com interface do WhatsApp, outro do Instagram. Você digita mensagens como se fosse um usuário real e o mock encaminha os eventos para a URL de webhook da sua aplicação no formato oficial da Meta.
+**wig** simula dois celulares em uma página web — um com interface do WhatsApp, outro do Instagram. Você digita mensagens, envia arquivos ou grava áudio como se fosse um usuário real; o mock encaminha os eventos para a URL de webhook da sua aplicação no formato oficial da Meta.
 
-Quando sua aplicação responde, a resposta aparece no chat simulado em tempo real.
+Quando sua aplicação responde via callback, a resposta aparece no chat simulado em tempo real.
 
-Tudo é configurável pela própria interface: URL do webhook, nome do contato e identificador. Nenhum arquivo de configuração, nenhum restart.
+Tudo é configurável pela própria interface: URL do webhook, nome do contato, identificador e Phone Number ID. Nenhum arquivo de configuração, nenhum restart. As configurações são persistidas no servidor e restauradas automaticamente no próximo acesso.
 
 ---
 
@@ -24,7 +24,8 @@ Tudo é configurável pela própria interface: URL do webhook, nome do contato e
 
 - Testar bots e fluxos de atendimento sem conta Meta Business real
 - Desenvolver integrações localmente sem expor portas para a internet
-- Inspecionar os payloads exatos trafegados em ambos os sentidos
+- Simular envio de texto, imagens, documentos e áudio (gravado pelo microfone)
+- Inspecionar os payloads exatos trafegados em ambos os sentidos via painel de debug em tempo real
 - Rodar em CI para testes de integração de ponta a ponta
 
 ---
@@ -45,11 +46,24 @@ Acesse [http://localhost:5504](http://localhost:5504) e configure os canais.
 
 Clique no ícone ⚙ no cabeçalho de cada celular e preencha:
 
+#### WhatsApp
+
 | Campo | Descrição | Exemplo |
 |---|---|---|
 | **Webhook URL** | URL da sua aplicação que recebe os eventos | `http://localhost:8000/api/webhook/` |
 | **Nome do contato** | Nome do remetente simulado | `João Silva` |
-| **Identificador** | Número E.164 (WPP) ou `@handle` (Instagram) | `5586999990000` / `@joaosilva` |
+| **Número (E.164)** | Identificador numérico — usado como `wa_id` nos payloads | `5586999990000` |
+| **Phone Number ID** | ID do número cadastrado no painel Meta — vai em `metadata.phone_number_id` | `102938475610293` |
+
+#### Instagram
+
+| Campo | Descrição | Exemplo |
+|---|---|---|
+| **Webhook URL** | URL da sua aplicação que recebe os eventos | `http://localhost:8000/api/webhook/` |
+| **Nome do contato** | Nome do remetente simulado | `Maria` |
+| **IGSID** | Identificador numérico do usuário no Instagram | `123456789` |
+
+> **Dica:** os campos são salvos no navegador e restaurados automaticamente na próxima vez que você abrir a página. Use o botão **↩ Restaurar** para repopular os campos manualmente a qualquer momento.
 
 ### 2. Copie a URL de callback
 
@@ -60,11 +74,19 @@ http://localhost:5504/callback/whatsapp
 http://localhost:5504/callback/instagram
 ```
 
-Quando sua aplicação quiser responder a uma mensagem, ela deve fazer um `POST` para essa URL.
+O endpoint também aceita o identificador do canal no lugar do nome (`/callback/5586999990000` ou `/callback/123456789`), que é o formato enviado por algumas integrações.
 
-### 3. Envie e receba mensagens
+### 3. Envie mensagens
 
-Digite no campo de texto do celular simulado e pressione Enter. O mock encaminha para o webhook da sua aplicação e exibe a resposta no chat assim que ela chegar.
+Use o campo de texto para digitar e pressione Enter (ou clique em ➤).
+
+**Enviar mídia:**
+- Clique em **📎** para selecionar uma imagem ou documento
+- Após selecionar o arquivo, uma barra de preview aparece — escreva uma legenda (opcional) e clique em ➤
+
+**Gravar áudio:**
+- Clique no botão 🎤 para iniciar a gravação
+- Clique novamente para enviar, ou em **Cancelar** para descartar
 
 ---
 
@@ -76,10 +98,38 @@ Faça um `POST` para `/callback/whatsapp` ou `/callback/instagram` com:
 
 ```json
 {
-  "text": "Olá! Como posso ajudar?",
-  "type": "text"
+  "type": "text",
+  "text": "Olá! Como posso ajudar?"
 }
 ```
+
+Para responder com mídia:
+
+```json
+{
+  "type": "image",
+  "text": "https://sua-app/imagens/confirmacao.png",
+  "caption": "Pedido confirmado!"
+}
+```
+
+```json
+{
+  "type": "document",
+  "text": "https://sua-app/docs/contrato.pdf",
+  "filename": "contrato.pdf",
+  "caption": "Segue o contrato em anexo."
+}
+```
+
+Campos aceitos:
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `type` | `text` \| `image` \| `audio` \| `video` \| `document` | Tipo da mensagem |
+| `text` | string | Texto (para `type=text`) ou URL da mídia |
+| `caption` | string | Legenda da mídia (opcional) |
+| `filename` | string | Nome do arquivo (para `document`) |
 
 Resposta de sucesso: `200 {"ok": true}`
 
@@ -108,12 +158,9 @@ Configure `APP_SECRET` no mock com o mesmo valor que sua aplicação usa para va
         "messaging_product": "whatsapp",
         "metadata": {
           "display_phone_number": "5586999990000",
-          "phone_number_id": "MOCK_PHONE_NUMBER_ID"
+          "phone_number_id": "102938475610293"
         },
-        "contacts": [{
-          "profile": { "name": "João Silva" },
-          "wa_id": "5586999990000"
-        }],
+        "contacts": [{ "profile": { "name": "João Silva" }, "wa_id": "5586999990000" }],
         "messages": [{
           "from": "5586999990000",
           "id": "wamid.HBgLmock1a2b3c4d5e6f",
@@ -128,7 +175,7 @@ Configure `APP_SECRET` no mock com o mesmo valor que sua aplicação usa para va
 }
 ```
 
-O mock também dispara **status updates** automaticamente após o envio (simulando o comportamento real da Meta):
+#### WhatsApp — mensagem de mídia (imagem, documento, áudio)
 
 ```json
 {
@@ -138,27 +185,50 @@ O mock também dispara **status updates** automaticamente após o envio (simulan
     "changes": [{
       "value": {
         "messaging_product": "whatsapp",
-        "metadata": { "display_phone_number": "5586999990000", "phone_number_id": "MOCK_PHONE_NUMBER_ID" },
-        "statuses": [{
+        "metadata": {
+          "display_phone_number": "5586999990000",
+          "phone_number_id": "102938475610293"
+        },
+        "contacts": [{ "profile": { "name": "João Silva" }, "wa_id": "5586999990000" }],
+        "messages": [{
+          "from": "5586999990000",
           "id": "wamid.HBgLmock1a2b3c4d5e6f",
-          "recipient_id": "5586999990000",
-          "status": "delivered",
-          "timestamp": "1746700001"
+          "timestamp": "1746700000",
+          "type": "image",
+          "image": {
+            "id": "abc123.jpg",
+            "mime_type": "image/jpeg",
+            "caption": "Foto do produto"
+          }
         }]
       },
-      "field": "message_status"
+      "field": "messages"
     }]
   }]
 }
 ```
 
-Status enviados: `delivered` (após ~1s) e `read` (após ~3s). Delays configuráveis via env vars.
+O campo `id` da mídia corresponde ao nome do arquivo. Para baixar, use:
+```
+GET /media/{id}
+```
+
+#### WhatsApp — status updates
+
+O mock dispara status updates automaticamente após o envio (simulando o comportamento real):
+
+| Status | Delay padrão |
+|---|---|
+| `delivered` | 1 segundo |
+| `read` | 3 segundos |
+
+Delays configuráveis via env vars `STATUS_DELIVERED_DELAY_MS` e `STATUS_READ_DELAY_MS`.
 
 ---
 
 #### Instagram — mensagem de texto
 
-> **Atenção:** a estrutura do Instagram é diferente do WhatsApp — usa `messaging` direto no `entry`, sem a camada `changes`.
+> A estrutura do Instagram é diferente do WhatsApp — usa `messaging` direto no `entry`, sem a camada `changes`.
 
 ```json
 {
@@ -172,40 +242,18 @@ Status enviados: `delivered` (após ~1s) e `read` (após ~3s). Delays configurá
       "timestamp": 1746700000,
       "message": {
         "mid": "mid.$mock1a2b3c4d5e6f7g8h",
-        "text": "mensagem do usuário",
-        "attachments": [],
-        "is_deleted": false,
-        "is_echo": false,
-        "is_unsupported": false
+        "text": "mensagem do usuário"
       }
     }]
   }]
 }
 ```
 
-O mock também envia um **read receipt** após o envio:
-
-```json
-{
-  "object": "instagram",
-  "entry": [{
-    "id": "MOCK_IG_ACCOUNT_ID",
-    "time": 1746700003,
-    "messaging": [{
-      "sender":    { "id": "123456789" },
-      "recipient": { "id": "MOCK_IG_ACCOUNT_ID" },
-      "timestamp": 1746700003,
-      "read": { "watermark": 1746700000 }
-    }]
-  }]
-}
-```
+O mock também envia delivery receipt e read receipt automaticamente.
 
 ---
 
 ### Verificação de webhook
-
-O mock expõe um endpoint que simula o fluxo de verificação que a Meta realiza ao registrar um webhook. Use-o para testar se sua aplicação responde corretamente ao challenge.
 
 ```
 GET /webhook/whatsapp?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=<random>
@@ -213,9 +261,7 @@ GET /webhook/instagram?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge
 ```
 
 - Token correto → `200` com o valor de `hub.challenge` em texto puro
-- Token errado ou `hub.mode` inválido → `403 Forbidden`
-
-Configure o `VERIFY_TOKEN` no mock com o mesmo valor que sua aplicação espera receber.
+- Token errado → `403 Forbidden`
 
 ---
 
@@ -229,10 +275,14 @@ Configure o `VERIFY_TOKEN` no mock com o mesmo valor que sua aplicação espera 
 | `PATCH` | `/config/{canal}` | Atualiza configuração em runtime |
 | `DELETE` | `/history/{canal}` | Limpa histórico do canal |
 | `GET` | `/webhook/{canal}` | Fluxo de verificação de webhook (hub.challenge) |
-| `POST` | `/callback/{canal}` | Recebe resposta da aplicação |
+| `POST` | `/callback/{canal}` | Recebe resposta da aplicação (`canal` = nome ou identificador) |
+| `POST` | `/media/upload` | Faz upload de um arquivo de mídia |
+| `GET` | `/media/{name}` | Serve um arquivo de mídia enviado |
 | `WS` | `/ws/{canal}` | WebSocket bidirecional (UI ↔ backend) |
 
-`{canal}`: `whatsapp` ou `instagram`
+`{canal}`: `whatsapp`, `instagram`, ou o identificador configurado (ex.: `5586999990000`).
+
+**Tipos de mídia aceitos no upload:** `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `audio/mpeg`, `audio/ogg`, `audio/wav`, `audio/mp4`, `audio/aac`, `audio/webm`, `video/mp4`, `video/webm`, `video/3gpp`, `application/pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`.
 
 ---
 
@@ -241,13 +291,14 @@ Configure o `VERIFY_TOKEN` no mock com o mesmo valor que sua aplicação espera 
 | Variável | Padrão | Descrição |
 |---|---|---|
 | `PORT` | `5504` | Porta do servidor |
-| `MOCK_BASE_URL` | `http://localhost:5504` | URL pública do mock — usada para gerar as URLs exibidas na UI |
+| `MOCK_BASE_URL` | `http://localhost:5504` | URL pública do mock — usada para gerar as URLs exibidas na UI e nos uploads |
 | `APP_SECRET` | `mock-secret` | Chave para assinar payloads com `X-Hub-Signature-256` |
 | `VERIFY_TOKEN` | `mock-verify-token` | Token para o fluxo de verificação de webhook |
 | `LOG_LEVEL` | `INFO` | Nível de log (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `MAX_DEBUG_ENTRIES` | `50` | Máximo de entradas no painel de debug por canal |
 | `STATUS_DELIVERED_DELAY_MS` | `1000` | Delay para status "delivered" no WPP (ms) |
 | `STATUS_READ_DELAY_MS` | `3000` | Delay para status "read" / read receipt (ms) |
+| `WS_INACTIVITY_TIMEOUT_S` | `300` | Tempo de inatividade do WebSocket antes de fechar (segundos) |
 
 ---
 
@@ -268,9 +319,6 @@ services:
 
   web:
     build: .
-    environment:
-      # configure o webhook na sua aplicação para apontar para o wig
-      WHATSAPP_WEBHOOK_SECRET: qualquer-coisa
     networks:
       - app
 
@@ -286,11 +334,14 @@ networks:
 
 ## Painel de debug
 
-Cada celular tem um card de debug colapsável que exibe, para cada mensagem:
+Cada celular tem um card de debug colapsável que exibe em tempo real, via WebSocket, cada evento processado:
 
-- `→ ENVIADO` — payload JSON completo enviado ao webhook da sua aplicação
-- `← RECEBIDO` — JSON recebido no callback, com status HTTP
-- `✕ ERRO` — detalhes de timeout, connection refused ou resposta não-2xx
+| Indicador | Descrição |
+|---|---|
+| `→ ENVIADO` | Payload JSON completo enviado ao webhook da sua aplicação |
+| `← RECEBIDO` | JSON recebido no callback, com status HTTP |
+| `⚡ STATUS` | Status updates (delivered/read) enviados ao webhook |
+| `✕ ERRO` | Detalhes de timeout, connection refused ou resposta não-2xx |
 
 Botões disponíveis: **Copiar JSON** por entrada · **Limpar log**
 
@@ -307,7 +358,8 @@ cp .env.example .env
 docker compose up
 
 # sem Docker (após instalar dependências)
-python -m uvicorn main:app --reload --port 5504
+pip install -r requirements.txt
+python -m uvicorn src.main:app --reload --port 5504
 ```
 
 Veja [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre como abrir PRs e a convenção de commits.
