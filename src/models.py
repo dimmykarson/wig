@@ -25,6 +25,7 @@ class ChannelConfigUpdate(BaseModel):
     webhook_url: str
     user_name: str
     identifier: str
+    phone_number_id: str = ""
 
 
 class CallbackPayload(BaseModel):

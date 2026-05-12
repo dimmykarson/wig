@@ -443,9 +443,68 @@ body {
 }
 .debug-clear-btn:hover { border-color: #555; color: #fff; }
 
+/* ── Docs panel ──────────────────────────────────────────────────────────── */
+.docs-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 280px;
+  flex-shrink: 0;
+}
+.docs-panel {
+  background: #1a1a1a;
+  border-radius: 16px;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
+}
+.docs-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.docs-panel-header:hover { background: rgba(255,255,255,.04); }
+.docs-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.doc-section { display: flex; flex-direction: column; gap: 8px; }
+.doc-section-title {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #25D366;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #2a2a2a;
+}
+.doc-section-title.ig { color: #0095F6; }
+.doc-section-title.both { color: #8696A0; }
+.doc-field { display: flex; flex-direction: column; gap: 3px; }
+.doc-field-name { font-size: .72rem; font-weight: 600; color: #E9EDEF; }
+.doc-field-desc { font-size: .7rem; color: #8696A0; line-height: 1.5; }
+.doc-field-example {
+  font-size: .67rem; color: #53BDEB; font-family: monospace;
+  background: #111; border-radius: 4px; padding: 2px 6px;
+  display: inline-block; margin-top: 1px;
+}
+.doc-tip {
+  background: #0d1a0d; border: 1px solid #1a4a20;
+  border-radius: 8px; padding: 8px 10px;
+  font-size: .7rem; color: #8696A0; line-height: 1.5;
+}
+.doc-tip strong { color: #25D366; }
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .main { flex-direction: column; align-items: center; }
+  .docs-col { width: var(--phone-w); }
 }
 </style>
 </head>
@@ -491,6 +550,8 @@ body {
       </div>
     </div>
 
+    <button class="clear-btn" style="width:var(--phone-w)" onclick="clearChat('whatsapp')">🗑 Limpar conversa</button>
+
     <!-- Config WPP -->
     <div class="config-panel" id="cfg-whatsapp">
       <div class="panel-header" onclick="togglePanel('cfg-whatsapp')">
@@ -515,6 +576,10 @@ body {
           <label class="field-label">Número (E.164)</label>
           <input class="field-input" id="wpp-identifier" placeholder="5586999990000">
           <span class="field-error" id="wpp-identifier-err">Apenas dígitos</span>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Phone Number ID</label>
+          <input class="field-input" id="wpp-phone-number-id" placeholder="MOCK_PHONE_NUMBER_ID">
         </div>
         <div class="info-box">
           <div style="flex:1">
@@ -545,7 +610,6 @@ body {
           <button class="copy-btn" onclick="copyText('wpp-app-secret',this)">Copiar</button>
         </div>
         <button class="save-btn" onclick="saveConfig('whatsapp')">Salvar</button>
-        <button class="clear-btn" onclick="clearChat('whatsapp')">🗑 Limpar conversa</button>
       </div>
     </div>
 
@@ -598,6 +662,8 @@ body {
         <button class="send-btn" id="ig-send" onclick="sendMsg('instagram')" disabled>➤</button>
       </div>
     </div>
+
+    <button class="clear-btn" style="width:var(--phone-w)" onclick="clearChat('instagram')">🗑 Limpar conversa</button>
 
     <!-- Config IG -->
     <div class="config-panel" id="cfg-instagram">
@@ -653,7 +719,6 @@ body {
           <button class="copy-btn" onclick="copyText('ig-app-secret',this)">Copiar</button>
         </div>
         <button class="save-btn" onclick="saveConfig('instagram')">Salvar</button>
-        <button class="clear-btn" onclick="clearChat('instagram')">🗑 Limpar conversa</button>
       </div>
     </div>
 
@@ -674,6 +739,83 @@ body {
     </div>
 
   </div><!-- /col-instagram -->
+
+  <!-- ── Documentação ───────────────────────────────────────────────────── -->
+  <div class="docs-col">
+    <div class="docs-panel">
+      <div class="docs-panel-header" onclick="togglePanel('docs-main')">
+        <span>📖 Guia de Configuração</span>
+        <span class="panel-toggle open" id="docs-main-toggle">▼</span>
+      </div>
+      <div class="docs-body panel-body open" id="docs-main-body">
+
+        <div class="doc-section">
+          <div class="doc-section-title both">Campos comuns</div>
+          <div class="doc-field">
+            <span class="doc-field-name">Webhook URL</span>
+            <span class="doc-field-desc">URL da sua aplicação que receberá os payloads enviados pelo mock quando uma mensagem for enviada.</span>
+            <span class="doc-field-example">http://csa-web-1:8000/api/v1/whatsapp/webhook/</span>
+          </div>
+          <div class="doc-field">
+            <span class="doc-field-name">Nome do contato</span>
+            <span class="doc-field-desc">Nome fictício do usuário simulado. Aparece no cabeçalho do chat e em <code style="font-size:.67rem;color:#53BDEB">profile.name</code> nos payloads.</span>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-section-title">WhatsApp</div>
+          <div class="doc-field">
+            <span class="doc-field-name">Número (E.164)</span>
+            <span class="doc-field-desc">Identificador do contato — somente dígitos, sem <code style="font-size:.67rem;color:#53BDEB">+</code>. Usado como <code style="font-size:.67rem;color:#53BDEB">wa_id</code> no payload.</span>
+            <span class="doc-field-example">5586999990000</span>
+          </div>
+          <div class="doc-field">
+            <span class="doc-field-name">Phone Number ID</span>
+            <span class="doc-field-desc">ID do número cadastrado no painel Meta. Vai em <code style="font-size:.67rem;color:#53BDEB">metadata.phone_number_id</code> — seu backend usa esse valor para identificar o canal. Copie do model <em>Canal</em> no admin do CSA.</span>
+            <span class="doc-field-example">102938475610293</span>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-section-title ig">Instagram</div>
+          <div class="doc-field">
+            <span class="doc-field-name">IGSID</span>
+            <span class="doc-field-desc">Identificador numérico do usuário no Instagram. Simula o ID real retornado pela API do Meta.</span>
+            <span class="doc-field-example">123456789</span>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-section-title both">URLs geradas automaticamente</div>
+          <div class="doc-field">
+            <span class="doc-field-name">URL de Callback</span>
+            <span class="doc-field-desc">Registre como <em>Callback URL</em> no painel Meta. O mock recebe os payloads e os encaminha ao seu Webhook URL.</span>
+          </div>
+          <div class="doc-field">
+            <span class="doc-field-name">URL de Verificação</span>
+            <span class="doc-field-desc">Usada para verificar o webhook no Meta. Responde ao <em>hub challenge</em> com o <code style="font-size:.67rem;color:#53BDEB">hub.verify_token</code>.</span>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-section-title both">Credenciais do servidor</div>
+          <div class="doc-field">
+            <span class="doc-field-name">Verify Token</span>
+            <span class="doc-field-desc">Definido via <code style="font-size:.67rem;color:#53BDEB">VERIFY_TOKEN</code>. Use o mesmo valor ao configurar o webhook no Meta.</span>
+          </div>
+          <div class="doc-field">
+            <span class="doc-field-name">App Secret</span>
+            <span class="doc-field-desc">Definido via <code style="font-size:.67rem;color:#53BDEB">APP_SECRET</code>. Gera a assinatura <code style="font-size:.67rem;color:#53BDEB">X-Hub-Signature-256</code> em cada requisição.</span>
+          </div>
+        </div>
+
+        <div class="doc-tip">
+          <strong>Fluxo:</strong> configure os campos → salve → copie a <em>URL de Callback</em> para o Meta → envie mensagens pelo chat para simular um usuário real chegando no seu webhook.
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /docs-col -->
 
 </main>
 
@@ -719,6 +861,9 @@ async function boot() {
         setInput(`${pre}-webhook-url`, data.webhook_url);
         setInput(`${pre}-user-name`,   data.user_name);
         setInput(`${pre}-identifier`,  data.identifier);
+        if (ch === 'whatsapp' && data.phone_number_id) {
+          setInput('wpp-phone-number-id', data.phone_number_id);
+        }
         updateHeader(ch, data.user_name, data.identifier);
         setSendEnabled(ch, true);
       }
@@ -914,9 +1059,12 @@ async function saveConfig(ch) {
   const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
   let valid = true;
 
-  const webhookUrl = document.getElementById(`${pre}-webhook-url`).value.trim();
-  const userName   = document.getElementById(`${pre}-user-name`).value.trim();
-  const identifier = document.getElementById(`${pre}-identifier`).value.trim();
+  const webhookUrl    = document.getElementById(`${pre}-webhook-url`).value.trim();
+  const userName      = document.getElementById(`${pre}-user-name`).value.trim();
+  const identifier    = document.getElementById(`${pre}-identifier`).value.trim();
+  const phoneNumberId = ch === 'whatsapp'
+    ? document.getElementById('wpp-phone-number-id').value.trim()
+    : '';
 
   valid = validateUrl(`${pre}-webhook-url`, webhookUrl) && valid;
   valid = validateRequired(`${pre}-user-name`, userName) && valid;
@@ -926,7 +1074,7 @@ async function saveConfig(ch) {
   const res = await fetch(`/config/${ch}`, {
     method: 'PATCH',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ webhook_url: webhookUrl, user_name: userName, identifier }),
+    body: JSON.stringify({ webhook_url: webhookUrl, user_name: userName, identifier, phone_number_id: phoneNumberId }),
   }).catch(() => null);
 
   if (!res || !res.ok) {

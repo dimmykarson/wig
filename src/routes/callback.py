@@ -6,16 +6,23 @@ from src.state import app_state
 router = APIRouter()
 
 
-def _get_platform(canal: str) -> Platform:
+def _resolve_platform(canal: str) -> Platform:
+    """Aceita o nome da plataforma ('whatsapp'/'instagram') ou o identifier
+    configurado no canal (wa_id / IGSID), resolvendo para a plataforma correta."""
     try:
         return Platform(canal)
     except ValueError:
-        raise HTTPException(status_code=404, detail=f"Canal '{canal}' não encontrado")
+        pass
+    for platform in Platform:
+        ch = app_state.get(platform)
+        if ch.config.identifier == canal:
+            return platform
+    raise HTTPException(status_code=404, detail=f"Canal com identifier '{canal}' não encontrado")
 
 
 @router.post("/callback/{canal}")
 async def receive_callback(canal: str, body: CallbackPayload):
-    platform = _get_platform(canal)
+    platform = _resolve_platform(canal)
     ch = app_state.get(platform)
 
     entry = DebugEntry(

@@ -11,4 +11,12 @@ services:
     env_file:
       - path: .env
         required: false
+    networks:
+      - default
+      - csa
     restart: unless-stopped
+
+networks:
+  csa:
+    external: true
+    name: csa_default

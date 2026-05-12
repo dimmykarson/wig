@@ -20,6 +20,8 @@ async def update_config(canal: str, body: ChannelConfigUpdate):
     ch.config.webhook_url = body.webhook_url
     ch.config.user_name = body.user_name
     ch.config.identifier = body.identifier
+    if body.phone_number_id:
+        ch.config.phone_number_id = body.phone_number_id
     ch.config.configured = True
 
     persisted = load_config()
@@ -27,6 +29,7 @@ async def update_config(canal: str, body: ChannelConfigUpdate):
         "webhook_url": body.webhook_url,
         "user_name": body.user_name,
         "identifier": body.identifier,
+        "phone_number_id": ch.config.phone_number_id,
     }
     save_config(persisted)
 

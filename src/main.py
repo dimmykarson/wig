@@ -46,6 +46,8 @@ async def lifespan(_app):
             ch.config.webhook_url = saved.get("webhook_url", "")
             ch.config.user_name = saved.get("user_name", "")
             ch.config.identifier = saved.get("identifier", "")
+            if saved.get("phone_number_id"):
+                ch.config.phone_number_id = saved["phone_number_id"]
             ch.config.configured = bool(ch.config.webhook_url)
             log.info("Config restaurada para %s", platform.value)
     yield
