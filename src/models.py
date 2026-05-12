@@ -28,9 +28,14 @@ class ChannelConfigUpdate(BaseModel):
     phone_number_id: str = ""
 
 
+MediaType = Literal["image", "audio", "video", "document"]
+
+
 class CallbackPayload(BaseModel):
-    text: str
-    type: Literal["text"] = "text"
+    type: Literal["text", "image", "audio", "video", "document"] = "text"
+    text: str = ""
+    caption: str = ""
+    filename: str = ""
 
 
 class DebugEntry(BaseModel):

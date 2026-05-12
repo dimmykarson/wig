@@ -35,11 +35,23 @@ async def receive_callback(canal: str, body: CallbackPayload):
 
     if ch.websocket:
         await ch.websocket.send_json({
+            "type": "debug",
+            "direction": entry.direction,
+            "payload": entry.payload,
+            "http_status": entry.http_status,
+            "timestamp_ms": entry.timestamp_ms,
+        })
+        msg: dict = {
             "type": "received",
             "msg_type": body.type,
             "text": body.text,
             "ts": _now_str(),
-        })
+        }
+        if body.type != "text":
+            msg["url"] = body.text
+            msg["caption"] = body.caption
+            msg["filename"] = body.filename
+        await ch.websocket.send_json(msg)
 
     return {"ok": True}
 

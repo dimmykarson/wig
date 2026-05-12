@@ -156,7 +156,7 @@ async def _handle_outgoing(platform: Platform, text: str) -> None:
     except Exception as exc:
         await ch.websocket.send_json({"type": "error", "text": str(exc)})
 
-    ch.add_debug(DebugEntry(
+    await _push_debug(ch, DebugEntry(
         direction="sent",
         timestamp_ms=ts_ms,
         http_status=http_status,
@@ -220,7 +220,7 @@ async def _handle_outgoing_media(
     except Exception as exc:
         await ch.websocket.send_json({"type": "error", "text": str(exc)})
 
-    ch.add_debug(DebugEntry(
+    await _push_debug(ch, DebugEntry(
         direction="sent",
         timestamp_ms=ts_ms,
         http_status=http_status,
@@ -228,6 +228,21 @@ async def _handle_outgoing_media(
     ))
 
     asyncio.create_task(_simulate_status(platform, msg_id))
+
+
+async def _push_debug(ch, entry: DebugEntry) -> None:
+    ch.add_debug(entry)
+    if ch.websocket:
+        try:
+            await ch.websocket.send_json({
+                "type": "debug",
+                "direction": entry.direction,
+                "payload": entry.payload,
+                "http_status": entry.http_status,
+                "timestamp_ms": entry.timestamp_ms,
+            })
+        except Exception:
+            pass
 
 
 async def _simulate_status(platform: Platform, msg_id: str) -> None:
@@ -244,7 +259,7 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
     else:
         delivered_payload = build_delivery_receipt(cfg, [msg_id], watermark)
 
-    ch.add_debug(DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=delivered_payload))
+    await _push_debug(ch, DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=delivered_payload))
     if ch.websocket:
         await ch.websocket.send_json({"type": "status", "status": "delivered"})
 
@@ -256,7 +271,7 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
     else:
         read_payload = build_read_receipt(cfg, watermark)
 
-    ch.add_debug(DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=read_payload))
+    await _push_debug(ch, DebugEntry(direction="status", timestamp_ms=int(time.time() * 1000), payload=read_payload))
     if ch.websocket:
         await ch.websocket.send_json({"type": "status", "status": "read"})
 
