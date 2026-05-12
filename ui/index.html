@@ -274,6 +274,113 @@ body {
 .send-btn:disabled { background: #3a3a3a; cursor: not-allowed; }
 .phone.ig .send-btn:disabled { background: #b2dffc; }
 
+/* ── Mic button ──────────────────────────────────────────────────────────── */
+.mic-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+  background: #00A884; color: #fff; transition: background .15s, transform .15s;
+}
+.mic-btn:hover { background: #017a60; }
+.phone.ig .mic-btn { background: #0095F6; }
+.phone.ig .mic-btn:hover { background: #0074cc; }
+.mic-btn.recording { background: #e53e3e; animation: mic-pulse .8s infinite; }
+.mic-btn:disabled { background: #3a3a3a; cursor: not-allowed; }
+@keyframes mic-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+
+/* ── Recording bar ───────────────────────────────────────────────────────── */
+.recording-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--wpp-input);
+  flex-shrink: 0;
+}
+.phone.ig .recording-bar { background: #fff; border-top: 1px solid #efefef; }
+.recording-bar.visible { display: flex; }
+.rec-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #e53e3e;
+  flex-shrink: 0; animation: rec-blink 1s infinite;
+}
+@keyframes rec-blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.rec-timer { font-size: .82rem; color: var(--wpp-text); font-variant-numeric: tabular-nums; flex: 1; }
+.phone.ig .rec-timer { color: var(--ig-text); }
+.rec-cancel {
+  background: none; border: none; cursor: pointer;
+  color: #8696A0; font-size: .8rem; padding: 4px 8px;
+  border-radius: 6px; transition: color .15s;
+}
+.rec-cancel:hover { color: #e53e3e; }
+
+/* ── Attach button & menu ────────────────────────────────────────────────── */
+.attach-wrap { position: relative; flex-shrink: 0; }
+.attach-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
+  background: none; color: var(--wpp-meta); font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.attach-btn:hover { background: rgba(255,255,255,.08); }
+.phone.ig .attach-btn { color: var(--ig-meta); }
+.phone.ig .attach-btn:hover { background: rgba(0,0,0,.06); }
+.attach-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.attach-menu {
+  position: absolute; bottom: 44px; left: 0;
+  background: #2a2a2a; border-radius: 12px;
+  padding: 6px; display: none; flex-direction: column; gap: 2px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5); z-index: 20; min-width: 140px;
+}
+.attach-menu.open { display: flex; }
+.attach-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  font-size: .8rem; color: #E9EDEF; border: none; background: none;
+  text-align: left; width: 100%;
+}
+.attach-menu-item:hover { background: rgba(255,255,255,.08); }
+.attach-menu-item span:first-child { font-size: 1rem; }
+
+/* ── Media preview bar ───────────────────────────────────────────────────── */
+.media-preview-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #17282f;
+  border-top: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+.media-preview-bar.visible { display: flex; }
+.phone.ig .media-preview-bar { background: #f0f0f0; border-top: 1px solid #dbdbdb; }
+.media-preview-icon { font-size: 1.2rem; flex-shrink: 0; }
+.media-preview-name { font-size: .72rem; color: #8696A0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone.ig .media-preview-name { color: #8e8e8e; }
+.media-preview-cancel {
+  background: none; border: none; cursor: pointer;
+  color: #8696A0; font-size: .85rem; padding: 2px 4px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.media-preview-cancel:hover { color: #e53e3e; }
+
+/* ── Media bubbles ───────────────────────────────────────────────────────── */
+.media-img {
+  max-width: 100%; border-radius: 8px; display: block;
+  cursor: pointer;
+}
+.media-audio { width: 100%; max-width: 200px; margin-top: 2px; }
+.media-doc {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.06); border-radius: 8px; padding: 6px 8px;
+  margin-top: 2px;
+}
+.media-doc-icon { font-size: 1.4rem; flex-shrink: 0; }
+.media-doc-name { font-size: .72rem; word-break: break-all; }
+.media-caption { font-size: .75rem; margin-top: 4px; opacity: .8; }
+.media-uploading { font-size: .72rem; color: var(--wpp-meta); font-style: italic; }
+
 /* ── Config panel ────────────────────────────────────────────────────────── */
 .config-panel {
   width: var(--phone-w);
@@ -543,10 +650,29 @@ body {
       <div class="chat-messages wpp-pattern" id="wpp-messages">
         <div class="debug-empty" id="wpp-empty">Configure o canal e envie uma mensagem.</div>
       </div>
+      <div class="media-preview-bar" id="wpp-preview-bar">
+        <span class="media-preview-icon" id="wpp-preview-icon">📄</span>
+        <span class="media-preview-name" id="wpp-preview-name"></span>
+        <button class="media-preview-cancel" onclick="cancelMedia('whatsapp')" title="Cancelar">✕</button>
+      </div>
+      <div class="recording-bar" id="wpp-recording-bar">
+        <div class="rec-dot"></div>
+        <span class="rec-timer" id="wpp-rec-timer">0:00</span>
+        <button class="rec-cancel" onclick="stopRecording('whatsapp', true)">✕ Cancelar</button>
+      </div>
       <div class="chat-input">
+        <div class="attach-wrap">
+          <button class="attach-btn" id="wpp-attach-btn" onclick="toggleAttachMenu('whatsapp')" disabled title="Anexar">📎</button>
+          <div class="attach-menu" id="wpp-attach-menu">
+            <button class="attach-menu-item" onclick="pickFile('whatsapp','image')"><span>🖼</span> Imagem</button>
+            <button class="attach-menu-item" onclick="pickFile('whatsapp','document')"><span>📄</span> Documento</button>
+          </div>
+          <input type="file" id="wpp-file-input" style="display:none" onchange="onFileSelected(event,'whatsapp')">
+        </div>
         <textarea class="msg-field" id="wpp-field" placeholder="Mensagem" rows="1"
-          onkeydown="handleKey(event,'whatsapp')" oninput="autoResize(this)"></textarea>
-        <button class="send-btn" id="wpp-send" onclick="sendMsg('whatsapp')" disabled>➤</button>
+          onkeydown="handleKey(event,'whatsapp')" oninput="onFieldInput(event,'whatsapp')"></textarea>
+        <button class="send-btn" id="wpp-send" onclick="sendMsg('whatsapp')" style="display:none">➤</button>
+        <button class="mic-btn" id="wpp-mic" onclick="toggleRecording('whatsapp')" disabled title="Gravar áudio">🎤</button>
       </div>
     </div>
 
@@ -656,10 +782,29 @@ body {
       <div class="chat-messages" id="ig-messages">
         <div class="debug-empty" id="ig-empty" style="color:#8e8e8e">Configure o canal e envie uma mensagem.</div>
       </div>
+      <div class="media-preview-bar" id="ig-preview-bar">
+        <span class="media-preview-icon" id="ig-preview-icon">📄</span>
+        <span class="media-preview-name" id="ig-preview-name"></span>
+        <button class="media-preview-cancel" onclick="cancelMedia('instagram')" title="Cancelar">✕</button>
+      </div>
+      <div class="recording-bar" id="ig-recording-bar">
+        <div class="rec-dot"></div>
+        <span class="rec-timer" id="ig-rec-timer">0:00</span>
+        <button class="rec-cancel" onclick="stopRecording('instagram', true)">✕ Cancelar</button>
+      </div>
       <div class="chat-input">
+        <div class="attach-wrap">
+          <button class="attach-btn" id="ig-attach-btn" onclick="toggleAttachMenu('instagram')" disabled title="Anexar">📎</button>
+          <div class="attach-menu" id="ig-attach-menu">
+            <button class="attach-menu-item" onclick="pickFile('instagram','image')"><span>🖼</span> Imagem</button>
+            <button class="attach-menu-item" onclick="pickFile('instagram','document')"><span>📄</span> Documento</button>
+          </div>
+          <input type="file" id="ig-file-input" style="display:none" onchange="onFileSelected(event,'instagram')">
+        </div>
         <textarea class="msg-field" id="ig-field" placeholder="Mensagem…" rows="1"
-          onkeydown="handleKey(event,'instagram')" oninput="autoResize(this)"></textarea>
-        <button class="send-btn" id="ig-send" onclick="sendMsg('instagram')" disabled>➤</button>
+          onkeydown="handleKey(event,'instagram')" oninput="onFieldInput(event,'instagram')"></textarea>
+        <button class="send-btn" id="ig-send" onclick="sendMsg('instagram')" style="display:none">➤</button>
+        <button class="mic-btn" id="ig-mic" onclick="toggleRecording('instagram')" disabled title="Gravar áudio">🎤</button>
       </div>
     </div>
 
@@ -913,12 +1058,12 @@ function connectWS(ch) {
 function handleWsMessage(ch, msg) {
   switch (msg.type) {
     case 'sent':
-      appendMsg(ch, 'sent', msg.text, msg.ts);
+      appendMsg(ch, 'sent', msg.text, msg.ts, msg.msg_type, msg.url, msg.caption, msg.filename);
       hideEmpty(ch);
       break;
     case 'received':
       hideTyping(ch);
-      appendMsg(ch, 'recv', msg.text, msg.ts);
+      appendMsg(ch, 'recv', msg.text, msg.ts, msg.msg_type, msg.url, msg.caption, msg.filename);
       break;
     case 'typing':
       if (msg.status) showTyping(ch); else hideTyping(ch);
@@ -938,7 +1083,7 @@ function handleWsMessage(ch, msg) {
 // ── Message rendering ──────────────────────────────────────────────────────
 let msgSeq = 0;
 
-function appendMsg(ch, dir, text, ts) {
+function appendMsg(ch, dir, text, ts, msgType, url, caption, filename) {
   const container = document.getElementById(ch === 'whatsapp' ? 'wpp-messages' : 'ig-messages');
   const isWpp = ch === 'whatsapp';
   const id = `msg-${++msgSeq}`;
@@ -950,10 +1095,14 @@ function appendMsg(ch, dir, text, ts) {
   const bubble = document.createElement('div');
   bubble.className = `bubble ${dir}`;
 
-  const textNode = document.createElement('div');
-  textNode.className = 'bubble-text';
-  textNode.textContent = text;
-  bubble.appendChild(textNode);
+  if (msgType && msgType !== 'text') {
+    bubble.appendChild(_buildMediaContent(msgType, url || text, caption, filename));
+  } else {
+    const textNode = document.createElement('div');
+    textNode.className = 'bubble-text';
+    textNode.textContent = text;
+    bubble.appendChild(textNode);
+  }
 
   const meta = document.createElement('div');
   meta.className = 'bubble-meta';
@@ -976,6 +1125,34 @@ function appendMsg(ch, dir, text, ts) {
   row.appendChild(bubble);
   container.appendChild(row);
   scrollBottom(container);
+}
+
+function _buildMediaContent(tipo, url, caption, filename) {
+  const wrap = document.createElement('div');
+  if (tipo === 'image') {
+    const img = document.createElement('img');
+    img.src = url; img.className = 'media-img';
+    img.onclick = () => window.open(url, '_blank');
+    wrap.appendChild(img);
+  } else if (tipo === 'audio') {
+    const audio = document.createElement('audio');
+    audio.src = url; audio.controls = true; audio.className = 'media-audio';
+    wrap.appendChild(audio);
+  } else {
+    const doc = document.createElement('div');
+    doc.className = 'media-doc';
+    doc.innerHTML = `<span class="media-doc-icon">📄</span><span class="media-doc-name">${escHtml(filename || url)}</span>`;
+    doc.onclick = () => window.open(url, '_blank');
+    doc.style.cursor = 'pointer';
+    wrap.appendChild(doc);
+  }
+  if (caption) {
+    const cap = document.createElement('div');
+    cap.className = 'media-caption';
+    cap.textContent = caption;
+    wrap.appendChild(cap);
+  }
+  return wrap;
 }
 
 function updateReceipt(ch, status) {
@@ -1030,19 +1207,33 @@ function hideEmpty(ch) {
 
 // ── Sending ────────────────────────────────────────────────────────────────
 function sendMsg(ch) {
-  const fieldId = ch === 'whatsapp' ? 'wpp-field' : 'ig-field';
-  const field = document.getElementById(fieldId);
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  const field = document.getElementById(`${pre}-field`);
   const text = field.value.trim();
-  if (!text) return;
+  const media = _pendingMedia[ch];
+
+  if (!media && !text) return;
 
   const state = channels[ch];
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
 
-  state.ws.send(JSON.stringify({ text }));
+  if (media?.uploadUrl) {
+    state.ws.send(JSON.stringify({
+      media_type: media.mediaType,
+      url: media.uploadUrl,
+      filename: media.filename,
+      mime: media.mime || '',
+      caption: text,
+    }));
+    cancelMedia(ch);
+  } else {
+    state.ws.send(JSON.stringify({ text }));
+    showTyping(ch);
+    setTimeout(() => hideTyping(ch), 10000);
+  }
+
   field.value = '';
   field.style.height = 'auto';
-  showTyping(ch);
-  setTimeout(() => hideTyping(ch), 10000);
 }
 
 function handleKey(e, ch) {
@@ -1145,8 +1336,202 @@ function updateHeader(ch, name, identifier) {
 }
 
 function setSendEnabled(ch, enabled) {
-  const id = ch === 'whatsapp' ? 'wpp-send' : 'ig-send';
-  document.getElementById(id).disabled = !enabled;
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  document.getElementById(`${pre}-attach-btn`).disabled = !enabled;
+  document.getElementById(`${pre}-mic`).disabled = !enabled;
+  // send/mic visibility controlled by onFieldInput
+  _updateSendMic(pre, enabled);
+}
+
+function _updateSendMic(pre, channelEnabled) {
+  const field = document.getElementById(`${pre}-field`);
+  const hasPendingMedia = _pendingMedia[pre === 'wpp' ? 'whatsapp' : 'instagram'];
+  const hasText = field && field.value.trim().length > 0;
+  const showSend = channelEnabled !== false && (hasText || hasPendingMedia);
+  document.getElementById(`${pre}-send`).style.display = showSend ? 'flex' : 'none';
+  document.getElementById(`${pre}-mic`).style.display  = showSend ? 'none' : 'flex';
+  document.getElementById(`${pre}-send`).disabled = !showSend;
+}
+
+function onFieldInput(event, ch) {
+  autoResize(event.target);
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  _updateSendMic(pre);
+}
+
+// ── Attachment / media upload ──────────────────────────────────────────────
+// Estado por canal: { mediaType, uploadUrl, filename } ou null
+const _pendingMedia = { whatsapp: null, instagram: null };
+const _mediaIcons = { image: '🖼', audio: '🎵', video: '🎬', document: '📄' };
+
+function toggleAttachMenu(ch) {
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  document.getElementById(`${pre}-attach-menu`).classList.toggle('open');
+}
+
+function pickFile(ch, mediaType) {
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  _pendingMedia[ch] = { mediaType, uploadUrl: null, filename: null };
+  const input = document.getElementById(`${pre}-file-input`);
+  input.accept = mediaType === 'image'  ? 'image/*'
+               : mediaType === 'audio'  ? 'audio/*'
+               : '.pdf,.doc,.docx,.xls,.xlsx';
+  document.getElementById(`${pre}-attach-menu`).classList.remove('open');
+  input.click();
+}
+
+async function onFileSelected(event, ch) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  const mediaType = _pendingMedia[ch]?.mediaType || 'document';
+
+  // sobe o arquivo imediatamente
+  const form = new FormData();
+  form.append('file', file);
+  let uploadRes;
+  try {
+    const r = await fetch('/media/upload', { method: 'POST', body: form });
+    if (!r.ok) throw new Error(`Upload falhou: ${r.status}`);
+    uploadRes = await r.json();
+  } catch (err) {
+    showError(ch, err.message);
+    _pendingMedia[ch] = null;
+    return;
+  }
+
+  _pendingMedia[ch] = { mediaType, uploadUrl: uploadRes.url, filename: uploadRes.filename, mime: uploadRes.type };
+
+  // mostra preview bar
+  document.getElementById(`${pre}-preview-icon`).textContent = _mediaIcons[mediaType] || '📄';
+  document.getElementById(`${pre}-preview-name`).textContent = uploadRes.filename;
+  document.getElementById(`${pre}-preview-bar`).classList.add('visible');
+
+  // foca no textarea para digitar a legenda
+  document.getElementById(`${pre}-field`).placeholder =
+    mediaType === 'audio' ? 'Mensagem (opcional)' : 'Legenda (opcional)';
+  document.getElementById(`${pre}-field`).focus();
+
+  // habilita o botão de envio mesmo sem texto
+  document.getElementById(`${pre}-send`).disabled = false;
+}
+
+function cancelMedia(ch) {
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  _pendingMedia[ch] = null;
+  document.getElementById(`${pre}-preview-bar`).classList.remove('visible');
+  document.getElementById(`${pre}-field`).placeholder = ch === 'whatsapp' ? 'Mensagem' : 'Mensagem…';
+  _updateSendMic(pre);
+}
+
+// ── Audio recording ────────────────────────────────────────────────────────
+const _rec = {
+  whatsapp: { recorder: null, chunks: [], timerInterval: null, seconds: 0 },
+  instagram: { recorder: null, chunks: [], timerInterval: null, seconds: 0 },
+};
+
+function _pickMime() {
+  const types = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4'];
+  return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
+
+function _mimeExt(mime) {
+  if (mime.includes('ogg')) return '.ogg';
+  if (mime.includes('mp4')) return '.m4a';
+  return '.webm';
+}
+
+async function toggleRecording(ch) {
+  if (_rec[ch].recorder) { stopRecording(ch, false); return; }
+  await startRecording(ch);
+}
+
+async function startRecording(ch) {
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    showError(ch, 'Permissão de microfone negada');
+    return;
+  }
+
+  const mime = _pickMime();
+  const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+  _rec[ch].recorder = recorder;
+  _rec[ch].chunks = [];
+  _rec[ch].seconds = 0;
+
+  recorder.ondataavailable = e => { if (e.data.size) _rec[ch].chunks.push(e.data); };
+  recorder.start(200);
+
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  document.getElementById(`${pre}-recording-bar`).classList.add('visible');
+  document.getElementById(`${pre}-chat-input-area`)?.classList.add('hidden');
+  document.getElementById(`${pre}-mic`).classList.add('recording');
+  document.getElementById(`${pre}-attach-btn`).disabled = true;
+
+  _rec[ch].timerInterval = setInterval(() => {
+    _rec[ch].seconds++;
+    const m = Math.floor(_rec[ch].seconds / 60);
+    const s = String(_rec[ch].seconds % 60).padStart(2, '0');
+    document.getElementById(`${pre}-rec-timer`).textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+async function stopRecording(ch, cancel) {
+  const state = _rec[ch];
+  if (!state.recorder) return;
+
+  clearInterval(state.timerInterval);
+  const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
+  document.getElementById(`${pre}-recording-bar`).classList.remove('visible');
+  document.getElementById(`${pre}-rec-timer`).textContent = '0:00';
+  document.getElementById(`${pre}-mic`).classList.remove('recording');
+  document.getElementById(`${pre}-attach-btn`).disabled = false;
+
+  const recorder = state.recorder;
+  state.recorder = null;
+
+  // para todas as tracks do stream
+  recorder.stream?.getTracks().forEach(t => t.stop());
+
+  if (cancel || state.seconds < 1) { recorder.stop(); return; }
+
+  await new Promise(resolve => {
+    recorder.onstop = resolve;
+    recorder.stop();
+  });
+
+  const mime = recorder.mimeType || 'audio/webm';
+  const ext  = _mimeExt(mime);
+  const blob = new Blob(state.chunks, { type: mime });
+  const file = new File([blob], `audio${ext}`, { type: mime });
+
+  // upload
+  const form = new FormData();
+  form.append('file', file);
+  let uploadRes;
+  try {
+    const r = await fetch('/media/upload', { method: 'POST', body: form });
+    if (!r.ok) throw new Error(`Upload falhou: ${r.status}`);
+    uploadRes = await r.json();
+  } catch (err) {
+    showError(ch, err.message); return;
+  }
+
+  const wsState = channels[ch];
+  if (!wsState.ws || wsState.ws.readyState !== WebSocket.OPEN) {
+    showError(ch, 'WebSocket desconectado'); return;
+  }
+  wsState.ws.send(JSON.stringify({
+    media_type: 'audio',
+    url: uploadRes.url,
+    filename: uploadRes.filename,
+    mime: uploadRes.type || mime,
+    caption: '',
+  }));
 }
 
 function scrollBottom(el) { el.scrollTop = el.scrollHeight; }
@@ -1242,6 +1627,12 @@ async function copyJson(btn, text) {
 }
 
 // ── Start ──────────────────────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.attach-wrap')) {
+    document.querySelectorAll('.attach-menu').forEach(m => m.classList.remove('open'));
+  }
+});
+
 boot();
 </script>
 </body>

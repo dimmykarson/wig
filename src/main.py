@@ -19,6 +19,7 @@ from src.builders.instagram import (
 )
 from src.builders.signature import compute_signature
 from src.builders.whatsapp import (
+    build_media_payload as wpp_media,
     build_status_payload,
     build_text_payload as wpp_text,
 )
@@ -28,6 +29,7 @@ from src.routes.callback import router as callback_router
 from src.routes.config import router as config_router
 from src.routes.health import router as health_router
 from src.routes.info import router as info_router
+from src.routes.media import router as media_router
 from src.routes.webhook import router as webhook_router
 from src.settings import settings
 from src.state import app_state
@@ -67,6 +69,7 @@ app.include_router(info_router)
 app.include_router(config_router)
 app.include_router(webhook_router)
 app.include_router(callback_router)
+app.include_router(media_router)
 
 
 # ── WebSocket ──────────────────────────────────────────────────────────────────
@@ -97,9 +100,15 @@ async def websocket_endpoint(websocket: WebSocket, canal: str):
                 ch.websocket = None
                 return
             text = data.get("text", "").strip()
-            if not text:
-                continue
-            await _handle_outgoing(platform, text)
+            media_type = data.get("media_type", "")
+            media_url = data.get("url", "")
+            if media_type and media_url:
+                await _handle_outgoing_media(platform, media_type, media_url,
+                                             data.get("caption", ""),
+                                             data.get("filename", ""),
+                                             data.get("mime", ""))
+            elif text:
+                await _handle_outgoing(platform, text)
     except WebSocketDisconnect:
         ch.websocket = None
         log.info("WS desconectado: %s", canal)
@@ -125,6 +134,70 @@ async def _handle_outgoing(platform: Platform, text: str) -> None:
     signature = compute_signature(settings.app_secret, body)
 
     await ch.websocket.send_json({"type": "sent", "text": text, "ts": now})
+
+    http_status = None
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                ch.config.webhook_url,
+                content=body,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Hub-Signature-256": signature,
+                },
+                timeout=10.0,
+            )
+        http_status = resp.status_code
+        if resp.status_code >= 400:
+            await ch.websocket.send_json({
+                "type": "error",
+                "text": f"Webhook retornou {resp.status_code}",
+            })
+    except Exception as exc:
+        await ch.websocket.send_json({"type": "error", "text": str(exc)})
+
+    ch.add_debug(DebugEntry(
+        direction="sent",
+        timestamp_ms=ts_ms,
+        http_status=http_status,
+        payload=payload,
+    ))
+
+    asyncio.create_task(_simulate_status(platform, msg_id))
+
+
+async def _handle_outgoing_media(
+    platform: Platform,
+    media_type: str,
+    url: str,
+    caption: str = "",
+    filename: str = "",
+    mime: str = "",
+) -> None:
+    ch = app_state.get(platform)
+    now = datetime.datetime.now().strftime("%H:%M")
+    ts_ms = int(time.time() * 1000)
+
+    if not ch.config.configured:
+        await ch.websocket.send_json({"type": "error", "text": "Canal não configurado"})
+        return
+
+    msg_id = generate_wamid()
+    payload = wpp_media(ch.config, media_type, url, msg_id, caption, filename, mime)
+
+    body = json.dumps(payload).encode()
+    signature = compute_signature(settings.app_secret, body)
+
+    display_text = caption or filename or url
+    await ch.websocket.send_json({
+        "type": "sent",
+        "msg_type": media_type,
+        "text": display_text,
+        "url": url,
+        "caption": caption,
+        "filename": filename,
+        "ts": now,
+    })
 
     http_status = None
     try:
