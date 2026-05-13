@@ -47,6 +47,11 @@ async def upload_media(file: UploadFile):
     dest = UPLOAD_DIR / name
     dest.write_bytes(await file.read())
 
+    # Salva o MIME type original para servir com Content-Type correto.
+    # Necessário porque mimetypes.guess_type(".webm") retorna "video/webm"
+    # mesmo para arquivos de áudio, quebrando a reprodução no <audio>.
+    (UPLOAD_DIR / f"{name}.mime").write_text(ct)
+
     base = settings.mock_base_url.rstrip("/")
     return {"url": f"{base}/media/{name}", "filename": file.filename or name, "type": ct}
 
@@ -56,4 +61,6 @@ async def serve_media(name: str):
     path = UPLOAD_DIR / name
     if not path.exists():
         raise HTTPException(status_code=404)
-    return FileResponse(path)
+    mime_path = UPLOAD_DIR / f"{name}.mime"
+    media_type = mime_path.read_text().strip() if mime_path.exists() else None
+    return FileResponse(path, media_type=media_type)

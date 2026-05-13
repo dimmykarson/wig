@@ -370,7 +370,36 @@ body {
   max-width: 100%; border-radius: 8px; display: block;
   cursor: pointer;
 }
-.media-audio { width: 100%; max-width: 200px; margin-top: 2px; }
+/* ── WhatsApp-style audio player ─────────────────────────────────────────── */
+.wa-audio {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 200px; max-width: 260px; padding: 2px 0;
+}
+.wa-audio-play {
+  width: 38px; height: 38px; border-radius: 50%; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity .15s;
+}
+.wa-audio-play:hover { opacity: .82; }
+.wpp .bubble.sent .wa-audio-play { background: rgba(255,255,255,.9); color: #00a884; }
+.wpp .bubble.recv .wa-audio-play { background: #00a884; color: #fff; }
+.ig  .bubble.sent .wa-audio-play { background: rgba(255,255,255,.85); color: #0095F6; }
+.ig  .bubble.recv .wa-audio-play { background: #0095F6; color: #fff; }
+.wa-audio-body { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.wa-audio-wave {
+  display: flex; align-items: center; gap: 1.5px; height: 20px;
+  cursor: pointer; user-select: none;
+}
+.wa-audio-bar { width: 2.5px; border-radius: 1.5px; flex-shrink: 0; transition: background .08s; }
+.wpp .bubble.sent .wa-audio-bar         { background: rgba(255,255,255,.35); }
+.wpp .bubble.sent .wa-audio-bar.wa-on  { background: rgba(255,255,255,.9); }
+.wpp .bubble.recv .wa-audio-bar         { background: #8696A0; }
+.wpp .bubble.recv .wa-audio-bar.wa-on  { background: #00a884; }
+.ig  .bubble.sent .wa-audio-bar         { background: rgba(255,255,255,.4); }
+.ig  .bubble.sent .wa-audio-bar.wa-on  { background: #fff; }
+.ig  .bubble.recv .wa-audio-bar         { background: #bbb; }
+.ig  .bubble.recv .wa-audio-bar.wa-on  { background: #0095F6; }
+.wa-audio-time { font-size: .62rem; opacity: .75; }
 .media-doc {
   display: flex; align-items: center; gap: 8px;
   background: rgba(255,255,255,.06); border-radius: 8px; padding: 6px 8px;
@@ -1148,6 +1177,82 @@ function appendMsg(ch, dir, text, ts, msgType, url, caption, filename) {
   scrollBottom(container);
 }
 
+// ── WhatsApp-style audio player helpers ────────────────────────────────────
+
+function _seededRng(seed) {
+  let s = (seed ^ 0xDEADBEEF) >>> 0;
+  return () => { s = Math.imul(s ^ (s >>> 15), s | 1) ^ Math.imul(s ^ (s >>> 7), s | 61); return ((s ^ (s >>> 14)) >>> 0) / 0xFFFFFFFF; };
+}
+
+function _svgPlay()  { return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; }
+function _svgPause() { return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; }
+
+function _buildAudioPlayer(url) {
+  const N = 35;
+  const audio = new Audio(url);
+  const wrap  = document.createElement('div');
+  wrap.className = 'wa-audio';
+
+  const btn = document.createElement('button');
+  btn.className = 'wa-audio-play';
+  btn.innerHTML = _svgPlay();
+  wrap.appendChild(btn);
+
+  const body = document.createElement('div');
+  body.className = 'wa-audio-body';
+
+  const wave = document.createElement('div');
+  wave.className = 'wa-audio-wave';
+  const rng  = _seededRng(url.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0));
+  const bars = Array.from({ length: N }, () => {
+    const b = document.createElement('div');
+    b.className = 'wa-audio-bar';
+    b.style.height = `${4 + Math.round(rng() * 14)}px`;
+    wave.appendChild(b);
+    return b;
+  });
+  body.appendChild(wave);
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'wa-audio-time';
+  timeEl.textContent = '0:00';
+  body.appendChild(timeEl);
+  wrap.appendChild(body);
+
+  const fmt = s => { const m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2,'0')}`; };
+
+  function syncBars() {
+    const pct = audio.duration ? audio.currentTime / audio.duration : 0;
+    const on  = Math.floor(pct * N);
+    bars.forEach((b, i) => b.classList.toggle('wa-on', i < on));
+    timeEl.textContent = fmt(audio.currentTime);
+  }
+
+  audio.addEventListener('loadedmetadata', () => { timeEl.textContent = fmt(audio.duration); });
+  audio.addEventListener('timeupdate', syncBars);
+  audio.addEventListener('ended', () => {
+    btn.innerHTML = _svgPlay();
+    bars.forEach(b => b.classList.remove('wa-on'));
+    timeEl.textContent = fmt(audio.duration || 0);
+  });
+
+  btn.addEventListener('click', () => {
+    if (audio.paused) { audio.play(); btn.innerHTML = _svgPause(); }
+    else              { audio.pause(); btn.innerHTML = _svgPlay(); }
+  });
+
+  wave.addEventListener('click', e => {
+    if (!audio.duration) return;
+    const r = wave.getBoundingClientRect();
+    audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+    syncBars();
+  });
+
+  return wrap;
+}
+
+// ── Media content builder ──────────────────────────────────────────────────
+
 function _buildMediaContent(tipo, url, caption, filename) {
   const wrap = document.createElement('div');
   if (tipo === 'image') {
@@ -1156,9 +1261,7 @@ function _buildMediaContent(tipo, url, caption, filename) {
     img.onclick = () => window.open(url, '_blank');
     wrap.appendChild(img);
   } else if (tipo === 'audio') {
-    const audio = document.createElement('audio');
-    audio.src = url; audio.controls = true; audio.className = 'media-audio';
-    wrap.appendChild(audio);
+    wrap.appendChild(_buildAudioPlayer(url));
   } else {
     const doc = document.createElement('div');
     doc.className = 'media-doc';
@@ -1505,7 +1608,9 @@ async function startRecording(ch) {
   _rec[ch].seconds = 0;
 
   recorder.ondataavailable = e => { if (e.data.size) _rec[ch].chunks.push(e.data); };
-  recorder.start(200);
+  // Sem timeslice: ondataavailable dispara UMA vez em stop(), garantindo WebM
+  // completo com o EBML header na primeira posição do blob.
+  recorder.start();
 
   const pre = ch === 'whatsapp' ? 'wpp' : 'ig';
   document.getElementById(`${pre}-recording-bar`).classList.add('visible');
@@ -1535,15 +1640,21 @@ async function stopRecording(ch, cancel) {
   const recorder = state.recorder;
   state.recorder = null;
 
-  // para todas as tracks do stream
-  recorder.stream?.getTracks().forEach(t => t.stop());
+  if (cancel || state.seconds < 1) {
+    recorder.stop();
+    recorder.stream?.getTracks().forEach(t => t.stop());
+    return;
+  }
 
-  if (cancel || state.seconds < 1) { recorder.stop(); return; }
-
+  // Para o recorder ANTES de parar os tracks: se os tracks forem parados
+  // primeiro, o Chrome finaliza o WebM sem fechar o Cluster corretamente,
+  // resultando em EBML header inválido que o ffmpeg não consegue decodificar.
   await new Promise(resolve => {
     recorder.onstop = resolve;
     recorder.stop();
   });
+
+  recorder.stream?.getTracks().forEach(t => t.stop());
 
   const mime = recorder.mimeType || 'audio/webm';
   const ext  = _mimeExt(mime);
