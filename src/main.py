@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse
 from src.builders.ids import generate_mid, generate_wamid
 from src.builders.instagram import (
     build_delivery_receipt,
+    build_media_payload as ig_media,
     build_read_receipt,
     build_text_payload as ig_text,
 )
@@ -184,8 +185,12 @@ async def _handle_outgoing_media(
         await ch.websocket.send_json({"type": "error", "text": "Canal não configurado"})
         return
 
-    msg_id = generate_wamid()
-    payload = wpp_media(ch.config, media_type, url, msg_id, caption, filename, mime)
+    if platform == Platform.WHATSAPP:
+        msg_id = generate_wamid()
+        payload = wpp_media(ch.config, media_type, url, msg_id, caption, filename, mime)
+    else:
+        msg_id = generate_mid()
+        payload = ig_media(ch.config, media_type, url, msg_id, caption)
 
     body = json.dumps(payload).encode()
     signature = compute_signature(settings.app_secret, body)

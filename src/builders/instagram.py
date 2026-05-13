@@ -30,6 +30,28 @@ def build_text_payload(config: ChannelConfig, text: str, mid: str) -> dict:
     return {"object": "instagram", "entry": [entry]}
 
 
+_IG_TYPE = {"document": "file"}  # WhatsApp "document" → Instagram "file"
+
+
+def build_media_payload(
+    config: ChannelConfig,
+    tipo: str,
+    url: str,
+    mid: str,
+    caption: str = "",
+) -> dict:
+    entry = _entry_base(config)
+    messaging = _messaging_base(config)
+    ig_type = _IG_TYPE.get(tipo, tipo)
+    attachment: dict = {"type": ig_type, "payload": {"url": url}}
+    message: dict = {"mid": mid, "attachments": [attachment]}
+    if caption:
+        message["text"] = caption
+    messaging["message"] = message
+    entry["messaging"] = [messaging]
+    return {"object": "instagram", "entry": [entry]}
+
+
 def build_delivery_receipt(config: ChannelConfig, mids: list[str], watermark: int) -> dict:
     entry = _entry_base(config)
     messaging = _messaging_base(config)

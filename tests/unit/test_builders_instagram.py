@@ -2,6 +2,7 @@ import pytest
 
 from src.builders.instagram import (
     build_delivery_receipt,
+    build_media_payload,
     build_read_receipt,
     build_text_payload,
 )
@@ -85,6 +86,42 @@ class TestBuildDeliveryReceipt:
     def test_delivery_watermark(self, config):
         m = _messaging(build_delivery_receipt(config, ["mid.$mock1234"], 1746700000))
         assert m["delivery"]["watermark"] == 1746700000
+
+
+class TestBuildMediaPayload:
+    def test_object_is_instagram(self, config):
+        p = build_media_payload(config, "image", "http://mock/img.jpg", "mid.$m1")
+        assert p["object"] == "instagram"
+
+    def test_attachment_type_image(self, config):
+        m = _messaging(build_media_payload(config, "image", "http://mock/img.jpg", "mid.$m1"))
+        assert m["message"]["attachments"][0]["type"] == "image"
+
+    def test_attachment_url(self, config):
+        m = _messaging(build_media_payload(config, "image", "http://mock/img.jpg", "mid.$m1"))
+        assert m["message"]["attachments"][0]["payload"]["url"] == "http://mock/img.jpg"
+
+    def test_document_maps_to_file(self, config):
+        m = _messaging(build_media_payload(config, "document", "http://mock/f.pdf", "mid.$m2"))
+        assert m["message"]["attachments"][0]["type"] == "file"
+
+    def test_audio_type(self, config):
+        m = _messaging(build_media_payload(config, "audio", "http://mock/a.ogg", "mid.$m3"))
+        assert m["message"]["attachments"][0]["type"] == "audio"
+
+    def test_caption_added_as_text(self, config):
+        m = _messaging(
+            build_media_payload(config, "image", "http://mock/img.jpg", "mid.$m4", caption="oi")
+        )
+        assert m["message"].get("text") == "oi"
+
+    def test_no_caption_no_text_key(self, config):
+        m = _messaging(build_media_payload(config, "image", "http://mock/img.jpg", "mid.$m5"))
+        assert "text" not in m["message"]
+
+    def test_mid_is_set(self, config):
+        m = _messaging(build_media_payload(config, "image", "http://mock/img.jpg", "mid.$m6"))
+        assert m["message"]["mid"] == "mid.$m6"
 
 
 class TestBuildReadReceipt:
