@@ -12,10 +12,19 @@ UPLOAD_DIR = Path("/tmp/wig-uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 _ALLOWED = {
-    "image/jpeg", "image/png", "image/gif", "image/webp",
-    "audio/mpeg", "audio/ogg", "audio/wav", "audio/mp4", "audio/aac",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "audio/mpeg",
+    "audio/ogg",
+    "audio/wav",
+    "audio/mp4",
+    "audio/aac",
     "audio/webm",  # Chrome MediaRecorder default
-    "video/mp4", "video/webm", "video/3gpp",
+    "video/mp4",
+    "video/webm",
+    "video/3gpp",
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -24,10 +33,19 @@ _ALLOWED = {
 }
 
 _EXT = {
-    "image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp",
-    "audio/mpeg": ".mp3", "audio/ogg": ".ogg", "audio/wav": ".wav",
-    "audio/mp4": ".m4a", "audio/aac": ".aac", "audio/webm": ".webm",
-    "video/mp4": ".mp4", "video/webm": ".webm", "video/3gpp": ".3gp",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+    "audio/mpeg": ".mp3",
+    "audio/ogg": ".ogg",
+    "audio/wav": ".wav",
+    "audio/mp4": ".m4a",
+    "audio/aac": ".aac",
+    "audio/webm": ".webm",
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/3gpp": ".3gp",
     "application/pdf": ".pdf",
     "application/msword": ".doc",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",

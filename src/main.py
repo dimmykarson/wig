@@ -75,6 +75,7 @@ app.include_router(media_router)
 
 # ── WebSocket ──────────────────────────────────────────────────────────────────
 
+
 @app.websocket("/ws/{canal}")
 async def websocket_endpoint(websocket: WebSocket, canal: str):
     try:
@@ -106,10 +107,14 @@ async def websocket_endpoint(websocket: WebSocket, canal: str):
             media_type = data.get("media_type", "")
             media_url = data.get("url", "")
             if media_type and media_url:
-                await _handle_outgoing_media(platform, media_type, media_url,
-                                             data.get("caption", ""),
-                                             data.get("filename", ""),
-                                             data.get("mime", ""))
+                await _handle_outgoing_media(
+                    platform,
+                    media_type,
+                    media_url,
+                    data.get("caption", ""),
+                    data.get("filename", ""),
+                    data.get("mime", ""),
+                )
             elif text:
                 await _handle_outgoing(platform, text)
     except WebSocketDisconnect:
@@ -152,19 +157,24 @@ async def _handle_outgoing(platform: Platform, text: str) -> None:
             )
         http_status = resp.status_code
         if resp.status_code >= 400:
-            await ch.websocket.send_json({
-                "type": "error",
-                "text": f"Webhook retornou {resp.status_code}",
-            })
+            await ch.websocket.send_json(
+                {
+                    "type": "error",
+                    "text": f"Webhook retornou {resp.status_code}",
+                }
+            )
     except Exception as exc:
         await ch.websocket.send_json({"type": "error", "text": str(exc)})
 
-    await _push_debug(ch, DebugEntry(
-        direction="sent",
-        timestamp_ms=ts_ms,
-        http_status=http_status,
-        payload=payload,
-    ))
+    await _push_debug(
+        ch,
+        DebugEntry(
+            direction="sent",
+            timestamp_ms=ts_ms,
+            http_status=http_status,
+            payload=payload,
+        ),
+    )
 
     asyncio.create_task(_simulate_status(platform, msg_id))
 
@@ -196,15 +206,17 @@ async def _handle_outgoing_media(
     signature = compute_signature(settings.app_secret, body)
 
     display_text = caption or filename or url
-    await ch.websocket.send_json({
-        "type": "sent",
-        "msg_type": media_type,
-        "text": display_text,
-        "url": url,
-        "caption": caption,
-        "filename": filename,
-        "ts": now,
-    })
+    await ch.websocket.send_json(
+        {
+            "type": "sent",
+            "msg_type": media_type,
+            "text": display_text,
+            "url": url,
+            "caption": caption,
+            "filename": filename,
+            "ts": now,
+        }
+    )
 
     http_status = None
     try:
@@ -220,19 +232,24 @@ async def _handle_outgoing_media(
             )
         http_status = resp.status_code
         if resp.status_code >= 400:
-            await ch.websocket.send_json({
-                "type": "error",
-                "text": f"Webhook retornou {resp.status_code}",
-            })
+            await ch.websocket.send_json(
+                {
+                    "type": "error",
+                    "text": f"Webhook retornou {resp.status_code}",
+                }
+            )
     except Exception as exc:
         await ch.websocket.send_json({"type": "error", "text": str(exc)})
 
-    await _push_debug(ch, DebugEntry(
-        direction="sent",
-        timestamp_ms=ts_ms,
-        http_status=http_status,
-        payload=payload,
-    ))
+    await _push_debug(
+        ch,
+        DebugEntry(
+            direction="sent",
+            timestamp_ms=ts_ms,
+            http_status=http_status,
+            payload=payload,
+        ),
+    )
 
     asyncio.create_task(_simulate_status(platform, msg_id))
 
@@ -241,13 +258,15 @@ async def _push_debug(ch, entry: DebugEntry) -> None:
     ch.add_debug(entry)
     if ch.websocket:
         try:
-            await ch.websocket.send_json({
-                "type": "debug",
-                "direction": entry.direction,
-                "payload": entry.payload,
-                "http_status": entry.http_status,
-                "timestamp_ms": entry.timestamp_ms,
-            })
+            await ch.websocket.send_json(
+                {
+                    "type": "debug",
+                    "direction": entry.direction,
+                    "payload": entry.payload,
+                    "http_status": entry.http_status,
+                    "timestamp_ms": entry.timestamp_ms,
+                }
+            )
         except Exception:
             pass
 

@@ -36,13 +36,15 @@ async def receive_callback(canal: str, body: CallbackPayload):
     ch.add_debug(entry)
 
     if ch.websocket:
-        await ch.websocket.send_json({
-            "type": "debug",
-            "direction": entry.direction,
-            "payload": entry.payload,
-            "http_status": entry.http_status,
-            "timestamp_ms": entry.timestamp_ms,
-        })
+        await ch.websocket.send_json(
+            {
+                "type": "debug",
+                "direction": entry.direction,
+                "payload": entry.payload,
+                "http_status": entry.http_status,
+                "timestamp_ms": entry.timestamp_ms,
+            }
+        )
         msg: dict = {
             "type": "received",
             "msg_type": body.type,
@@ -60,4 +62,5 @@ async def receive_callback(canal: str, body: CallbackPayload):
 
 def _now_str() -> str:
     import datetime
+
     return datetime.datetime.now().strftime("%H:%M")

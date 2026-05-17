@@ -33,7 +33,4 @@ async def info():
 
 @router.get("/config")
 async def get_config():
-    return {
-        p.value: app_state.get(p).config.model_dump()
-        for p in Platform
-    }
+    return {p.value: app_state.get(p).config.model_dump() for p in Platform}
