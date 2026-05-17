@@ -7,7 +7,7 @@
 
 services:
   wig:
-    image: dimmykarson/wig:latest
+    image: ghcr.io/dimmykarson/wig:latest
     ports:
       - "5504:5504"
     environment:

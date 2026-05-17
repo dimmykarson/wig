@@ -5,8 +5,7 @@
 [![CI](https://github.com/dimmykarson/wig/actions/workflows/test.yml/badge.svg)](https://github.com/dimmykarson/wig/actions/workflows/test.yml)
 [![Lint](https://github.com/dimmykarson/wig/actions/workflows/lint.yml/badge.svg)](https://github.com/dimmykarson/wig/actions/workflows/lint.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docker Pulls](https://img.shields.io/docker/pulls/dimmykarson/wig)](https://hub.docker.com/r/dimmykarson/wig)
-[![Docker Image Size](https://img.shields.io/docker/image-size/dimmykarson/wig/latest)](https://hub.docker.com/r/dimmykarson/wig)
+[![Container](https://img.shields.io/badge/container-ghcr.io-2088FF?logo=github)](https://github.com/dimmykarson/wig/pkgs/container/wig)
 
 ---
 
@@ -33,7 +32,7 @@ Tudo é configurável pela própria interface: URL do webhook, nome do contato, 
 ## Quickstart
 
 ```bash
-docker run -p 5504:5504 dimmykarson/wig
+docker run -p 5504:5504 ghcr.io/dimmykarson/wig:latest
 ```
 
 Acesse [http://localhost:5504](http://localhost:5504) e configure os canais.
@@ -309,7 +308,7 @@ Exemplo de uso junto com sua aplicação:
 ```yaml
 services:
   wig:
-    image: dimmykarson/wig
+    image: ghcr.io/dimmykarson/wig:latest
     ports:
       - "5504:5504"
     environment:
