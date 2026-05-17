@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-05-17
+
+### Added
+
+- Media upload route and media file serving
+- Instagram channel: outbound media (image / audio / video)
+- Configurable `phone_number_id`, in-app docs panel and UX improvements
+- Automatic restoration of channel config fields from `localStorage`
+- Support for `audio/webm` and `video/webm` as valid media types
+
+### Fixed
+
+- Media send now uses Meta's `id` reference instead of `link`
+- Debug panel correctly shows both outbound and inbound payloads
+- Lint and broken test scenarios in CI
+- `MediaRecorder` no longer uses `timeslice`, producing complete WebM blobs
+
+### Changed
+
+- Microphone affordance migrated from emoji to Material SVG icon
+- Codebase formatted with Black to match the CI check
+- Container image now published to `ghcr.io/dimmykarson/wig` (was Docker Hub)
+- `.coverage` and coverage artifacts removed from version control
+
+### Security
+
+- `python-dotenv` 1.0.1 → 1.2.2 (GHSA-mf9w-mj56-hr94)
+- `python-multipart` 0.0.9 → 0.0.28 (GHSA-59g5-xgcq-4qw3, -wp53-j4wj-2cfg, -mj87-hwqh-73pj, -pp6c-gr5w-3c5g)
+- `fastapi` 0.115.0 → 0.136.1 (unblocks `starlette` ≥0.46 → 1.0.0, fixing GHSA-f96h-pmfr-66vw, -2c2j-9gv5-cj73, -7f5h-v6xp-fcq8)
+
 ## [0.1.0] — 2026-05-08
 
 ### Added
@@ -37,4 +67,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 68 unit and integration tests, 98% code coverage
 
 [0.1.0]: https://github.com/dimmykarson/wig/releases/tag/v0.1.0
-[Unreleased]: https://github.com/dimmykarson/wig/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/dimmykarson/wig/releases/tag/v0.1.1
+[Unreleased]: https://github.com/dimmykarson/wig/compare/v0.1.1...HEAD
