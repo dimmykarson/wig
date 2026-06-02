@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wig — WhatsApp Mock</title>
+<link rel="stylesheet" href="/static/shared.css">
+<link rel="stylesheet" href="/static/whatsapp-page.css">
+</head>
+<body class="wa-page">
+<script>
+  // Esta página opera só o canal WhatsApp (shared.js lê isto no parse).
+  window.CHANNELS = ['whatsapp'];
+  // Aplica o modo salvo antes do conteúdo pintar (evita flash de layout).
+  document.body.classList.add('mode-' + (localStorage.getItem('wig-wa-mode') || 'phone'));
+</script>
+
+<header class="app-header wa-header">
+  <span class="badge">wig</span>
+  <h1>WhatsApp Mock</h1>
+  <div class="wa-mode-toggle" role="tablist" aria-label="Modo de visualização">
+    <button class="wa-mode-btn" data-mode="phone" onclick="setWaMode('phone')" title="Celular em tela cheia">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Celular
+    </button>
+    <button class="wa-mode-btn" data-mode="web" onclick="setWaMode('web')" title="Layout WhatsApp Web">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      WhatsApp Web
+    </button>
+  </div>
+  <div class="wa-device" title="Modelo do aparelho (modo Celular)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+    <select class="wa-device-select" id="wa-device-select" onchange="setWaDevice(this.value)" aria-label="Modelo do aparelho">
+      <option value="iphone15">iPhone 15</option>
+      <option value="motog">Moto G</option>
+      <option value="s26">Galaxy S26</option>
+      <option value="pixel">Pixel</option>
+      <option value="ipad">iPad</option>
+    </select>
+  </div>
+  <a href="https://github.com/dimmykarson/wig" target="_blank">GitHub ↗</a>
+</header>
+
+<main class="wa-main">
+ <div class="wa-workspace">
+  <div class="wa-shell">
+
+    <!-- Sidebar de conversas (visível apenas no modo WhatsApp Web) -->
+    <aside class="wa-sidebar">
+      <div class="wa-side-top">
+        <div class="avatar">👤</div>
+        <div class="wa-side-actions"><span>💬</span><span>⋮</span></div>
+      </div>
+      <div class="wa-search"><input type="text" placeholder="Pesquisar ou começar nova conversa" readonly></div>
+      <div class="wa-conv-list">
+        <div class="wa-conv active">
+          <div class="avatar">👤</div>
+          <div class="wa-conv-info">
+            <div class="wa-conv-name" id="wa-side-name">WhatsApp</div>
+            <div class="wa-conv-preview">Conversa simulada</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Palco: o aparelho/chat WhatsApp (mesmo DOM nos dois modos) -->
+    <section class="wa-stage">
+      <div class="phone wpp device-iphone15" id="phone-whatsapp">
+        <div class="notch"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <span>▲▼</span><span>WiFi</span><span>🔋</span>
+          </div>
+        </div>
+        <div class="chat-header">
+          <div class="avatar" id="wpp-avatar">👤</div>
+          <div class="chat-header-info">
+            <div class="chat-header-name" id="wpp-name">WhatsApp</div>
+            <div class="chat-header-sub" id="wpp-sub">Configure o canal ⚙</div>
+          </div>
+          <div class="header-actions">
+            <div class="conn-dot" id="wpp-dot" title="WebSocket"></div>
+            <button class="icon-btn" onclick="toggleConfig('whatsapp')" title="Configurar">⚙</button>
+          </div>
+        </div>
+        <div class="chat-messages wpp-pattern" id="wpp-messages">
+          <div class="debug-empty" id="wpp-empty">Configure o canal e envie uma mensagem.</div>
+        </div>
+        <div class="media-preview-bar" id="wpp-preview-bar">
+          <span class="media-preview-icon" id="wpp-preview-icon">📄</span>
+          <span class="media-preview-name" id="wpp-preview-name"></span>
+          <button class="media-preview-cancel" onclick="cancelMedia('whatsapp')" title="Cancelar">✕</button>
+        </div>
+        <div class="recording-bar" id="wpp-recording-bar">
+          <div class="rec-dot"></div>
+          <span class="rec-timer" id="wpp-rec-timer">0:00</span>
+          <button class="rec-cancel" onclick="stopRecording('whatsapp', true)">✕ Cancelar</button>
+        </div>
+        <div class="chat-input">
+          <div class="attach-wrap">
+            <button class="attach-btn" id="wpp-attach-btn" onclick="toggleAttachMenu('whatsapp')" disabled title="Anexar">📎</button>
+            <div class="attach-menu" id="wpp-attach-menu">
+              <button class="attach-menu-item" onclick="pickFile('whatsapp','image')"><span>🖼</span> Imagem</button>
+              <button class="attach-menu-item" onclick="pickFile('whatsapp','document')"><span>📄</span> Documento</button>
+            </div>
+            <input type="file" id="wpp-file-input" style="display:none" onchange="onFileSelected(event,'whatsapp')">
+          </div>
+          <textarea class="msg-field" id="wpp-field" placeholder="Mensagem" rows="1"
+            onkeydown="handleKey(event,'whatsapp')" oninput="onFieldInput(event,'whatsapp')"></textarea>
+          <button class="send-btn" id="wpp-send" onclick="sendMsg('whatsapp')" style="display:none">➤</button>
+          <button class="mic-btn" id="wpp-mic" onclick="toggleRecording('whatsapp')" disabled title="Gravar áudio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /wa-shell -->
+
+  <!-- Painéis de configuração, debug e ações (coluna à direita) -->
+  <aside class="wa-panels">
+   <button class="clear-btn" onclick="clearChat('whatsapp')">🗑 Limpar conversa</button>
+
+  <div class="config-panel" id="cfg-whatsapp">
+    <div class="panel-header" onclick="togglePanel('cfg-whatsapp')">
+      <span>⚙ Configuração — WhatsApp</span>
+      <span class="panel-toggle" id="cfg-whatsapp-toggle">▼</span>
+    </div>
+    <div class="panel-body" id="cfg-whatsapp-body">
+      <div class="field-group">
+        <label class="field-label">Webhook URL</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div class="webhook-status" id="wpp-wh-status"></div>
+          <input class="field-input" id="wpp-webhook-url" placeholder="http://sua-app/api/webhook/" style="flex:1">
+        </div>
+        <span class="field-error" id="wpp-webhook-url-err">URL inválida</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Nome do contato</label>
+        <input class="field-input" id="wpp-user-name" placeholder="João Silva">
+        <span class="field-error" id="wpp-user-name-err">Campo obrigatório</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Número (E.164)</label>
+        <input class="field-input" id="wpp-identifier" placeholder="5586999990000">
+        <span class="field-error" id="wpp-identifier-err">Apenas dígitos</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number ID</label>
+        <input class="field-input" id="wpp-phone-number-id" placeholder="MOCK_PHONE_NUMBER_ID">
+      </div>
+      <div class="info-box">
+        <div style="flex:1">
+          <span class="info-box-label">URL de Callback</span>
+          <span class="info-box-value" id="wpp-callback-url">—</span>
+        </div>
+        <button class="copy-btn" onclick="copyText('wpp-callback-url',this)">Copiar</button>
+      </div>
+      <div class="info-box">
+        <div style="flex:1">
+          <span class="info-box-label">URL de Verificação</span>
+          <span class="info-box-value" id="wpp-verify-url">—</span>
+        </div>
+        <button class="copy-btn" onclick="copyText('wpp-verify-url',this)">Copiar</button>
+      </div>
+      <div class="info-box">
+        <div style="flex:1">
+          <span class="info-box-label">Verify Token</span>
+          <span class="info-box-value" id="wpp-verify-token">—</span>
+        </div>
+        <button class="copy-btn" onclick="copyText('wpp-verify-token',this)">Copiar</button>
+      </div>
+      <div class="info-box">
+        <div style="flex:1">
+          <span class="info-box-label">App Secret</span>
+          <span class="info-box-value" id="wpp-app-secret">—</span>
+        </div>
+        <button class="copy-btn" onclick="copyText('wpp-app-secret',this)">Copiar</button>
+      </div>
+      <div class="save-row">
+        <button class="restore-btn" id="wpp-restore-btn" onclick="restoreFormFromStorage('whatsapp')" style="display:none">↩ Restaurar</button>
+        <button class="save-btn" onclick="saveConfig('whatsapp')">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="debug-panel" id="dbg-whatsapp">
+    <div class="debug-panel-header" onclick="togglePanel('dbg-whatsapp')">
+      <span>🔍 Debug — WhatsApp</span>
+      <div class="debug-actions" onclick="event.stopPropagation()">
+        <button class="debug-clear-btn" onclick="clearDebug('whatsapp')">Limpar log</button>
+        <span class="panel-toggle" id="dbg-whatsapp-toggle">▼</span>
+      </div>
+    </div>
+    <div class="panel-body" id="dbg-whatsapp-body">
+      <div class="debug-log" id="wpp-debug-log">
+        <div class="debug-empty" id="wpp-debug-empty">Nenhuma entrada ainda.</div>
+      </div>
+    </div>
+   </div>
+  </aside><!-- /wa-panels -->
+ </div><!-- /wa-workspace -->
+</main>
+
+<script src="/static/shared.js"></script>
+<script>
+  const WA_DEVICES = ['iphone15', 'motog', 's26', 'pixel', 'ipad'];
+
+  // Alterna o modo de visualização (Celular / WhatsApp Web) sem recarregar.
+  function setWaMode(mode) {
+    document.body.classList.remove('mode-phone', 'mode-web');
+    document.body.classList.add('mode-' + mode);
+    localStorage.setItem('wig-wa-mode', mode);
+    document.querySelectorAll('.wa-mode-btn')
+      .forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  }
+
+  // Troca o modelo do aparelho (moldura/recorte) no modo Celular.
+  function setWaDevice(device) {
+    const phone = document.getElementById('phone-whatsapp');
+    WA_DEVICES.forEach(d => phone.classList.remove('device-' + d));
+    phone.classList.add('device-' + device);
+    localStorage.setItem('wig-wa-device', device);
+  }
+
+  (function () {
+    // Marca o botão ativo conforme o modo persistido.
+    const mode = localStorage.getItem('wig-wa-mode') || 'phone';
+    document.querySelectorAll('.wa-mode-btn')
+      .forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+
+    // Restaura o modelo de aparelho persistido.
+    const device = localStorage.getItem('wig-wa-device') || 'iphone15';
+    setWaDevice(device);
+    const sel = document.getElementById('wa-device-select');
+    if (sel) sel.value = device;
+
+    // Espelha o nome do contato (header do celular) no item da sidebar web.
+    const nameEl = document.getElementById('wpp-name');
+    const sideEl = document.getElementById('wa-side-name');
+    if (nameEl && sideEl) {
+      const sync = () => { sideEl.textContent = nameEl.textContent; };
+      sync();
+      new MutationObserver(sync).observe(nameEl, { childList: true, characterData: true, subtree: true });
+    }
+  })();
+</script>
+</body>
+</html>

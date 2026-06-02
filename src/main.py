@@ -10,6 +10,7 @@ import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.builders.ids import generate_mid, generate_wamid
 from src.builders.instagram import (
@@ -308,9 +309,20 @@ async def _simulate_status(platform: Platform, msg_id: str) -> None:
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
 
-_UI_FILE = Path(__file__).parent.parent / "ui" / "index.html"
+_UI_DIR = Path(__file__).parent.parent / "ui"
+_INDEX_FILE = _UI_DIR / "index.html"
+_WHATSAPP_FILE = _UI_DIR / "whatsapp.html"
 
 
 @app.get("/", response_class=HTMLResponse)
 async def ui():
-    return HTMLResponse(_UI_FILE.read_text(encoding="utf-8"))
+    return HTMLResponse(_INDEX_FILE.read_text(encoding="utf-8"))
+
+
+@app.get("/whatsapp", response_class=HTMLResponse)
+async def ui_whatsapp():
+    return HTMLResponse(_WHATSAPP_FILE.read_text(encoding="utf-8"))
+
+
+# Assets compartilhados (shared.css, shared.js) servidos como estáticos cacheáveis
+app.mount("/static", StaticFiles(directory=_UI_DIR), name="static")

@@ -1,0 +1,272 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Página dedicada WhatsApp — layout e modos (Celular / WhatsApp Web).
+   Depende de shared.css (frame do celular, balões, input, painéis).
+
+   Layout: workspace de 2 colunas → emulação à ESQUERDA, configuração à DIREITA.
+   Modos: `mode-phone` (aparelho) / `mode-web` (sidebar + chat estilo WhatsApp Web,
+   com a paleta CLARA real do WhatsApp Web). Alternar é só trocar a classe no <body>.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root { --wa-header-h: 57px; }
+
+/* ── Header: seletor de modo ─────────────────────────────────────────────── */
+.wa-header a { margin-left: 16px; }            /* link GitHub depois do toggle */
+
+.wa-mode-toggle {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  background: #0b141a;
+  border: 1px solid #2a3942;
+  border-radius: 99px;
+  padding: 3px;
+}
+.wa-mode-btn {
+  background: transparent;
+  border: none;
+  color: #8696a0;
+  font: 600 .78rem/1 inherit;
+  padding: 7px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: background .15s, color .15s;
+}
+.wa-mode-btn:hover { color: #d1d7db; }
+.wa-mode-btn.active { background: #00a884; color: #fff; }
+.wa-mode-btn svg { width: 15px; height: 15px; }
+
+/* Seletor de modelo de aparelho (só faz sentido no modo Celular) */
+.wa-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 14px;
+  padding: 5px 10px 5px 12px;
+  color: #8696a0;
+  background: #0b141a;
+  border: 1px solid #2a3942;
+  border-radius: 99px;
+}
+.wa-device svg { width: 15px; height: 15px; }
+.wa-device-select {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #d1d7db;
+  font: 600 .78rem/1 inherit;
+  cursor: pointer;
+}
+.wa-device-select option { background: #111b21; color: #d1d7db; }
+.mode-web .wa-device { display: none; }
+
+/* ── Workspace: emulação (esquerda) + painéis (direita) ──────────────────── */
+.wa-main { flex: 1; min-height: 0; }
+.wa-workspace { display: flex; align-items: stretch; min-width: 0; }
+.wa-shell { flex: 1; min-width: 0; display: flex; }
+
+/* Coluna de painéis (config + debug + limpar) à direita.
+   É o "chrome" da ferramenta — fica escuro, separado da emulação clara. */
+.wa-panels {
+  width: 350px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px 40px;
+}
+.wa-panels .config-panel,
+.wa-panels .debug-panel,
+.wa-panels .clear-btn { width: 100%; }
+
+/* ── Sidebar de conversas (modo web) — paleta clara WhatsApp Web ─────────── */
+.wa-sidebar {
+  display: none;
+  flex-direction: column;
+  width: 360px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-right: 1px solid #d1d7db;
+}
+.wa-side-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f0f2f5;
+}
+.wa-side-top .wa-side-actions { margin-left: auto; display: flex; gap: 16px; color: #54656f; font-size: 1.05rem; }
+.wa-search { padding: 8px 12px; background: #ffffff; }
+.wa-search input {
+  width: 100%;
+  background: #f0f2f5;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #111b21;
+  font-size: .82rem;
+  outline: none;
+}
+.wa-search input::placeholder { color: #667781; }
+.wa-conv-list { flex: 1; overflow-y: auto; }
+.wa-conv {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f2f5;
+}
+.wa-conv:hover { background: #f5f6f6; }
+.wa-conv.active { background: #f0f2f5; }
+.wa-conv-info { flex: 1; min-width: 0; }
+.wa-conv-name { font-size: .92rem; font-weight: 500; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wa-conv-preview { font-size: .78rem; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+/* Palco do celular/chat */
+.wa-stage { display: flex; }
+
+/* ── MODO CELULAR ────────────────────────────────────────────────────────── */
+.wa-page.mode-phone { --phone-w: 380px; --phone-h: 760px; }
+.mode-phone .wa-workspace { max-width: 1180px; margin: 0 auto; padding: 24px 20px 40px; gap: 28px; align-items: flex-start; }
+.mode-phone .wa-sidebar { display: none; }
+.mode-phone .wa-shell { justify-content: center; padding-top: 6px; }
+.mode-phone .wa-stage { justify-content: center; }
+
+/* ── TEMA CLARO (ambos os modos) ─────────────────────────────────────────── */
+/* Paleta CLARA real do WhatsApp — redefinir as variáveis cascateia para header,
+   balões, input e receipts (que leem var(--wpp-*)). A moldura do aparelho segue
+   escura (é o corpo físico); só a TELA fica clara, como num celular no tema light. */
+.wa-page {
+  --wpp-bg: #efeae2;
+  --wpp-chat-bg: #efeae2;
+  --wpp-sent: #d9fdd3;
+  --wpp-recv: #ffffff;
+  --wpp-top: #f0f2f5;
+  --wpp-input: #f0f2f5;
+  --wpp-text: #111b21;
+  --wpp-meta: #667781;
+  --wpp-blue: #53bdeb;
+}
+/* Ajustes finos das cores hardcoded (que não vêm de variável) p/ tema claro */
+.wa-page .chat-header { border-bottom: 1px solid #d1d7db; }
+.wa-page .status-bar { color: #54656f; }
+.wa-page .avatar { background: #dfe5e7; }
+.wa-page .wpp-pattern {
+  background-color: #efeae2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='20' fill='none' stroke='%23000000' stroke-opacity='0.035' stroke-width='1'/%3E%3C/svg%3E");
+}
+.wa-page .bubble-time { color: rgba(17, 27, 33, .45); }
+.wa-page .msg-field {
+  background: #ffffff;
+  color: #111b21;
+  border: 1px solid #e9edef;
+}
+.wa-page .msg-field::placeholder { color: #667781; }
+.wa-page .chat-messages::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .2); }
+
+/* ── MODO WHATSAPP WEB (layout) ──────────────────────────────────────────── */
+.mode-web .wa-workspace { height: calc(100vh - var(--wa-header-h)); }
+.mode-web .wa-shell { background: #efeae2; }
+.mode-web .wa-sidebar { display: flex; }
+.mode-web .wa-stage { flex: 1; min-width: 0; }
+.mode-web .phone {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Sem moldura nem barra de status do aparelho no layout desktop */
+.mode-web .notch,
+.mode-web .status-bar { display: none; }
+
+/* Painéis ocupam a altura cheia à direita no modo web (coluna rolável) */
+.mode-web .wa-panels {
+  height: calc(100vh - var(--wa-header-h));
+  overflow-y: auto;
+  background: #0b141a;
+  border-left: 1px solid #222d34;
+}
+
+/* ── MODELOS DE APARELHO (modo Celular) ──────────────────────────────────── */
+/* A moldura (borda/raio) e o recorte de câmera (.notch) mudam por modelo.
+   Escopado em .mode-phone — no modo web a moldura é removida. */
+
+/* iPhone 15 — Dynamic Island (pílula flutuante), cantos bem arredondados */
+.mode-phone .phone.device-iphone15 {
+  border-radius: 56px;
+  border: 11px solid #1c1c1e;
+  box-shadow: 0 0 0 2px #3a3a3c, 0 24px 60px rgba(0,0,0,.7);
+}
+.mode-phone .device-iphone15 .notch {
+  top: 10px; width: 96px; height: 26px;
+  background: #000; border-radius: 16px;
+}
+
+/* Moto G — punch-hole central, moldura plástica mais grossa, cantos menos redondos */
+.mode-phone .phone.device-motog {
+  border-radius: 30px;
+  border: 12px solid #1f1f23;
+  box-shadow: 0 0 0 1px #34343a, 0 24px 60px rgba(0,0,0,.7);
+}
+.mode-phone .device-motog .notch {
+  top: 8px; width: 12px; height: 12px;
+  background: #000; border-radius: 50%;
+}
+
+/* Galaxy S26 — bordas finíssimas, punch-hole minúsculo central */
+.mode-phone .phone.device-s26 {
+  border-radius: 46px;
+  border: 7px solid #0d0d0f;
+  box-shadow: 0 0 0 1px #2b2b30, 0 24px 60px rgba(0,0,0,.7);
+}
+.mode-phone .device-s26 .notch {
+  top: 7px; width: 10px; height: 10px;
+  background: #000; border-radius: 50%;
+}
+
+/* Pixel — punch-hole central, moldura cetim, raio característico */
+.mode-phone .phone.device-pixel {
+  border-radius: 38px;
+  border: 10px solid #2a2d31;
+  box-shadow: 0 0 0 1px #3c4045, 0 24px 60px rgba(0,0,0,.7);
+}
+.mode-phone .device-pixel .notch {
+  top: 9px; width: 13px; height: 13px;
+  background: #000; border-radius: 50%;
+}
+
+/* iPad — tablet largo, bordas uniformes grossas, câmera = ponto central */
+.wa-page.mode-phone .phone.device-ipad {
+  width: 620px;
+  height: 800px;
+  border-radius: 28px;
+  border: 16px solid #1b1b1d;
+  box-shadow: 0 0 0 2px #3a3a3c, 0 24px 60px rgba(0,0,0,.7);
+}
+.mode-phone .device-ipad .notch {
+  top: 5px; width: 8px; height: 8px;
+  background: #15151a; border: 1px solid #333; border-radius: 50%;
+}
+
+/* ── Responsivo: empilha colunas e volta ao aparelho ─────────────────────── */
+@media (max-width: 960px) {
+  .wa-workspace { flex-direction: column; align-items: center; }
+  .wa-panels { width: 100%; max-width: 480px; }
+  .mode-web .wa-workspace { height: auto; }
+  .mode-web .wa-panels { height: auto; overflow: visible; border-left: none; }
+  .mode-web .wa-sidebar { display: none; }
+  .mode-web .wa-shell { height: auto; justify-content: center; padding: 24px 12px 8px; background: transparent; }
+  .mode-web .phone {
+    width: var(--phone-w, 360px);
+    height: var(--phone-h, 720px);
+    border: 8px solid #2a2a2a;
+    border-radius: 44px;
+    box-shadow: 0 0 0 1px #3a3a3a, 0 24px 60px rgba(0,0,0,.7);
+  }
+  .mode-web .notch,
+  .mode-web .status-bar { display: revert; }
+}

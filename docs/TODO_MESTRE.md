@@ -590,6 +590,40 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 
 ---
 
+### ÉPICO 13 — Página dedicada WhatsApp → [spec](specs/pagina-whatsapp.md)
+
+> Página nova em `GET /whatsapp`, só WhatsApp, com dois modos selecionáveis
+> (Celular em tela cheia · WhatsApp Web desktop). Reutiliza o canal `whatsapp`
+> existente — backend de payloads/WS/config inalterado. Extração de JS/CSS
+> compartilhados antes de criar a página (DRY).
+
+**Fase 1 — Backend (TDD pytest):**
+- [x] `13.1` Teste de integração: `GET /whatsapp` → 200 `text/html` (Red→Green)
+- [x] `13.2` Teste de integração: `GET /` continua 200 com os dois canais
+- [x] `13.3` Teste de integração: estático `shared.js` servido com 200
+- [x] `13.4` Montar `StaticFiles` para `ui/` e adicionar rota `GET /whatsapp`
+
+**Fase 2 — Extração compartilhada (refactor sem mudança de comportamento):**
+- [x] `13.5` Extrair CSS comum de `index.html` → `ui/shared.css`
+- [x] `13.6` Extrair JS comum de `index.html` → `ui/shared.js`
+- [x] `13.7` `index.html` importa `shared.css`/`shared.js`; CHANNELS parametriza boot
+
+**Fase 3 — Página WhatsApp:**
+- [x] `13.8` `ui/whatsapp.html` — markup só-WhatsApp importando shared
+- [x] `13.9` Seletor de modo (Celular / WhatsApp Web) + persistência em `localStorage`
+- [x] `13.10` CSS do Modo Celular (aparelho centralizado, maior)
+- [x] `13.11` CSS do Modo WhatsApp Web (sidebar de conversas + painel de chat)
+- [x] `13.12` Verificação visual (Playwright): dois modos renderizam + paridade do index.html ✓ — round-trip de mensagem real fica para validação contra a app consumidora
+
+**Fase 4 — Refinamentos visuais:**
+- [x] `13.13` Layout em duas colunas (emulação à esquerda, painéis à direita)
+- [x] `13.14` Paleta clara real do WhatsApp Web no modo web
+- [x] `13.15` Seletor de modelo de aparelho (iPhone 15 · Moto G · Galaxy S26 · Pixel · iPad) com moldura/recorte de câmera próprios, persistido em `localStorage`
+- [x] `13.16` Tema claro aplicado nos dois modos (Celular e Web); moldura do device permanece escura
+- [x] `13.17` fix: renderizar marcação WhatsApp no balão (`*negrito*`, `_itálico_`, `~tachado~`, ```` ```mono``` ````) e preservar quebras de linha `\n` — antes mostrava asteriscos crus e colava a lista numa linha só (afeta index.html e whatsapp.html via shared.js)
+
+---
+
 ## Ordem de Implementação
 
 ```
