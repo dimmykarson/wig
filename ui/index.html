@@ -56,6 +56,7 @@
           <button class="attach-btn" id="wpp-attach-btn" onclick="toggleAttachMenu('whatsapp')" disabled title="Anexar">📎</button>
           <div class="attach-menu" id="wpp-attach-menu">
             <button class="attach-menu-item" onclick="pickFile('whatsapp','image')"><span>🖼</span> Imagem</button>
+            <button class="attach-menu-item" onclick="pickFile('whatsapp','video')"><span>🎬</span> Vídeo</button>
             <button class="attach-menu-item" onclick="pickFile('whatsapp','document')"><span>📄</span> Documento</button>
           </div>
           <input type="file" id="wpp-file-input" style="display:none" onchange="onFileSelected(event,'whatsapp')">
@@ -191,6 +192,7 @@
           <button class="attach-btn" id="ig-attach-btn" onclick="toggleAttachMenu('instagram')" disabled title="Anexar">📎</button>
           <div class="attach-menu" id="ig-attach-menu">
             <button class="attach-menu-item" onclick="pickFile('instagram','image')"><span>🖼</span> Imagem</button>
+            <button class="attach-menu-item" onclick="pickFile('instagram','video')"><span>🎬</span> Vídeo</button>
             <button class="attach-menu-item" onclick="pickFile('instagram','document')"><span>📄</span> Documento</button>
           </div>
           <input type="file" id="ig-file-input" style="display:none" onchange="onFileSelected(event,'instagram')">

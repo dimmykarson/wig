@@ -11,6 +11,10 @@ services:
     env_file:
       - path: .env
         required: false
+    # Permite que webhooks apontem para serviços publicados no host de forma estável,
+    # sem depender do IP de LAN (ex.: http://host.docker.internal:55500/...).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
       - csa

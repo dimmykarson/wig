@@ -255,6 +255,12 @@ function _buildMediaContent(tipo, url, caption, filename) {
     img.src = url; img.className = 'media-img';
     img.onclick = () => window.open(url, '_blank');
     wrap.appendChild(img);
+  } else if (tipo === 'video') {
+    const video = document.createElement('video');
+    video.src = url; video.className = 'media-video';
+    video.controls = true;
+    video.preload = 'metadata';
+    wrap.appendChild(video);
   } else if (tipo === 'audio') {
     wrap.appendChild(_buildAudioPlayer(url));
   } else {
@@ -513,6 +519,7 @@ function pickFile(ch, mediaType) {
   _pendingMedia[ch] = { mediaType, uploadUrl: null, filename: null };
   const input = document.getElementById(`${pre}-file-input`);
   input.accept = mediaType === 'image'  ? 'image/*'
+               : mediaType === 'video'  ? 'video/*'
                : mediaType === 'audio'  ? 'audio/*'
                : '.pdf,.doc,.docx,.xls,.xlsx';
   document.getElementById(`${pre}-attach-menu`).classList.remove('open');

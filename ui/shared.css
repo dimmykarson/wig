@@ -376,6 +376,10 @@ body {
   max-width: 100%; border-radius: 8px; display: block;
   cursor: pointer;
 }
+.media-video {
+  max-width: 100%; width: 240px; border-radius: 8px; display: block;
+  background: #000;
+}
 /* ── WhatsApp-style audio player ─────────────────────────────────────────── */
 .wa-audio {
   display: flex; align-items: center; gap: 8px;

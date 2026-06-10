@@ -622,7 +622,11 @@ X-Hub-Signature-256: sha256=<HMAC-SHA256(app_secret, raw_body)>
 - [x] `13.16` Tema claro aplicado nos dois modos (Celular e Web); moldura do device permanece escura
 - [x] `13.17` fix: renderizar marcação WhatsApp no balão (`*negrito*`, `_itálico_`, `~tachado~`, ```` ```mono``` ````) e preservar quebras de linha `\n` — antes mostrava asteriscos crus e colava a lista numa linha só (afeta index.html e whatsapp.html via shared.js)
 
----
+**Fase 5 — Mídia: vídeo (backend já suportava; faltava a UI):**
+- [x] `13.18` Botão "🎬 Vídeo" no menu de anexo (index.html e whatsapp.html)
+- [x] `13.19` `pickFile` aceita `video/*`; preview/legenda como nas demais mídias
+- [x] `13.20` `_buildMediaContent` renderiza `<video controls>` para tipo `video`
+- [x] `13.21` Verificação: upload `video/mp4` (200, type video/mp4) + player exibido nos dois sentidos (enviado/recebido) via Playwright
 
 ## Ordem de Implementação
 
